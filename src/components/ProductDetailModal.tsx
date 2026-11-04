@@ -33,14 +33,13 @@ import {
 import { useProductDetailStore } from '../store/productDetailStore';
 import { useCartStore } from '../store/cartStore';
 import { useProductStore } from '../store/productStore';
+import { resolveImageUrl } from '../config/api';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const ProductDetailModal = () => {
   const { selectedProduct, isOpen, closeDetail } = useProductDetailStore();
   const addToCart = useCartStore(state => state.addToCart);
-  const favorites = useProductStore(state => state.favorites);
-  const toggleFavorite = useProductStore(state => state.toggleFavorite);
 
   const [quantity, setQuantity] = useState(1);
   const [activeImageUri, setActiveImageUri] = useState<string | null>(null);
@@ -48,13 +47,13 @@ const ProductDetailModal = () => {
   useEffect(() => {
     if (selectedProduct) {
       setQuantity(1);
-      setActiveImageUri(selectedProduct.imageUrl || selectedProduct.secondImageUrl || null);
+      const img = resolveImageUrl(selectedProduct.imageUrl) || resolveImageUrl(selectedProduct.secondImageUrl);
+      setActiveImageUri(img);
     }
   }, [selectedProduct]);
 
   if (!selectedProduct) return null;
 
-  const isFav = !!favorites[selectedProduct.pk];
   const strain = selectedProduct.strain;
   const priceNum = parseFloat(selectedProduct.retail_price || '0');
   const totalPriceForQty = (priceNum * quantity).toFixed(2);
@@ -88,8 +87,8 @@ const ProductDetailModal = () => {
   const handleDecrement = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
 
   const imagesList = [
-    selectedProduct.imageUrl,
-    selectedProduct.secondImageUrl,
+    resolveImageUrl(selectedProduct.imageUrl),
+    resolveImageUrl(selectedProduct.secondImageUrl),
   ].filter(Boolean) as string[];
 
   return (

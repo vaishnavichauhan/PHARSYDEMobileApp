@@ -32,9 +32,14 @@ import {
   AlertTriangle,
   Store,
   Sparkles,
+  Crown,
   HelpCircle,
+  Smartphone,
+  ArrowDownCircle,
 } from 'lucide-react-native';
 import { useMenuStore, MenuPage } from '../store/menuStore';
+import { useCuratedStore } from '../store/curatedStore';
+import { useAppUpdateStore } from '../store/appUpdateStore';
 
 const STORE_INFO = {
   name: 'Pharsyde Cannabis',
@@ -64,6 +69,19 @@ const MenuScreen = () => {
   const setContactField = useMenuStore(state => state.setContactField);
   const submitContactForm = useMenuStore(state => state.submitContactForm);
   const resetContactForm = useMenuStore(state => state.resetContactForm);
+
+  // Curated Collections (New Arrivals & Best Sellers)
+  const openCuratedModal = useCuratedStore(state => state.openCuratedModal);
+  const newArrivals = useCuratedStore(state => state.newArrivals);
+  const bestSellers = useCuratedStore(state => state.bestSellers);
+
+  // App Version & Update State
+  const cleanCurrentVersion = useAppUpdateStore(state => state.cleanCurrentVersion);
+  const latestVersion = useAppUpdateStore(state => state.latestVersion);
+  const updateRequired = useAppUpdateStore(state => state.updateRequired);
+  const updateStatus = useAppUpdateStore(state => state.status);
+  const checkForUpdates = useAppUpdateStore(state => state.checkForUpdates);
+  const performUpdate = useAppUpdateStore(state => state.performUpdate);
 
   const handleCall = () => {
     Linking.openURL(`tel:${STORE_INFO.phoneRaw}`).catch(() => {
@@ -231,7 +249,11 @@ const MenuScreen = () => {
     ];
 
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.subpageScroll}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.subpageScroll}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeaderBanner}>
           <Text style={styles.pageTag}>CONSUMER PROTECTION</Text>
           <Text style={styles.pageTitle}>Policies & Protection</Text>
@@ -326,7 +348,11 @@ const MenuScreen = () => {
   // ─────────────────────────────────────────────────────────────
   const renderAboutPage = () => {
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.subpageScroll}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.subpageScroll}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeaderBanner}>
           <Text style={styles.pageTag}>ABOUT PHARSYDE</Text>
           <Text style={styles.pageTitle}>More Than a Collection.{'\n'}A Way of Life.</Text>
@@ -401,7 +427,11 @@ const MenuScreen = () => {
   // ─────────────────────────────────────────────────────────────
   const renderTermsPage = () => {
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.subpageScroll}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.subpageScroll}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeaderBanner}>
           <Text style={styles.pageTag}>LEGAL AGREEMENT</Text>
           <Text style={styles.pageTitle}>Terms & Conditions</Text>
@@ -445,7 +475,11 @@ const MenuScreen = () => {
   // ─────────────────────────────────────────────────────────────
   const renderContactPage = () => {
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.subpageScroll}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.subpageScroll}
+        keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeaderBanner}>
           <Text style={styles.pageTag}>CUSTOMER SUPPORT</Text>
           <Text style={styles.pageTitle}>Get In Touch</Text>
@@ -606,7 +640,11 @@ const MenuScreen = () => {
     ];
 
     return (
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuScroll}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.menuScroll}
+        keyboardShouldPersistTaps="handled">
         {/* Brand Showcase Header */}
         <View style={styles.menuBrandBanner}>
           <View style={styles.brandTitleRow}>
@@ -630,6 +668,58 @@ const MenuScreen = () => {
             </View>
           </View>
         </View>
+
+        {/* Curated Collections: New Arrivals & Best Sellers */}
+        <View style={styles.curatedSection}>
+          <Text style={styles.curatedSectionHeader}>CURATED DROPS</Text>
+          <View style={styles.curatedCardsGrid}>
+            <TouchableOpacity
+              style={[styles.menuCuratedCard, styles.menuCuratedNew]}
+              activeOpacity={0.85}
+              onPress={() => openCuratedModal('new-arrivals')}>
+              <View style={styles.menuCuratedTop}>
+                <View style={[styles.menuCuratedIconWrap, { backgroundColor: 'rgba(142, 247, 5, 0.2)' }]}>
+                  <Sparkles size={18} color="#8EF705" />
+                </View>
+                <View style={[styles.menuCuratedBadge, { backgroundColor: 'rgba(142, 247, 5, 0.16)', borderColor: 'rgba(142, 247, 5, 0.4)' }]}>
+                  <Text style={[styles.menuCuratedBadgeText, { color: '#8EF705' }]}>NEW</Text>
+                </View>
+              </View>
+              <Text style={styles.menuCuratedTitle}>New Arrivals</Text>
+              <Text style={styles.menuCuratedSub}>
+                {newArrivals.length > 0 ? `${newArrivals.length} fresh products` : 'Fresh drops'}
+              </Text>
+              <View style={styles.menuCuratedLinkRow}>
+                <Text style={[styles.menuCuratedLinkText, { color: '#8EF705' }]}>Explore</Text>
+                <ChevronRight size={13} color="#8EF705" />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.menuCuratedCard, styles.menuCuratedBest]}
+              activeOpacity={0.85}
+              onPress={() => openCuratedModal('best-sellers')}>
+              <View style={styles.menuCuratedTop}>
+                <View style={[styles.menuCuratedIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
+                  <Crown size={18} color="#F59E0B" />
+                </View>
+                <View style={[styles.menuCuratedBadge, { backgroundColor: 'rgba(245, 158, 11, 0.16)', borderColor: 'rgba(245, 158, 11, 0.4)' }]}>
+                  <Text style={[styles.menuCuratedBadgeText, { color: '#F59E0B' }]}>HOT</Text>
+                </View>
+              </View>
+              <Text style={styles.menuCuratedTitle}>Best Sellers</Text>
+              <Text style={styles.menuCuratedSub}>
+                {bestSellers.length > 0 ? `${bestSellers.length} community picks` : 'Top shelf'}
+              </Text>
+              <View style={styles.menuCuratedLinkRow}>
+                <Text style={[styles.menuCuratedLinkText, { color: '#FBBF24' }]}>Explore</Text>
+                <ChevronRight size={13} color="#FBBF24" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <Text style={styles.menuSectionHeader}>INFORMATION & POLICIES</Text>
 
         {/* 4 Requested Menu Navigation Cards */}
         <View style={styles.cardsContainer}>
@@ -669,11 +759,85 @@ const MenuScreen = () => {
           })}
         </View>
 
+        {/* App Version & Live Update Card */}
+        <View style={styles.appVersionCard}>
+          <View style={styles.appVersionHeaderRow}>
+            <View style={styles.appVersionHeaderLeft}>
+              <View style={styles.appVersionIconWrap}>
+                <Smartphone size={20} color="#488203" strokeWidth={2.2} />
+              </View>
+              <View>
+                <Text style={styles.appVersionTitle}>App Version</Text>
+                <Text style={styles.appVersionSub}>
+                  Installed: <Text style={styles.appVersionSubBold}>v{cleanCurrentVersion}</Text>
+                </Text>
+              </View>
+            </View>
+
+            {/* Status Pill Badge */}
+            <View
+              style={[
+                styles.versionStatusPill,
+                updateRequired ? styles.versionStatusPillUpdate : styles.versionStatusPillOk,
+              ]}>
+              {updateRequired ? (
+                <ArrowDownCircle size={13} color="#DC2626" strokeWidth={2.4} />
+              ) : (
+                <CheckCircle2 size={13} color="#059669" strokeWidth={2.4} />
+              )}
+              <Text
+                style={[
+                  styles.versionStatusText,
+                  updateRequired ? styles.versionStatusTextUpdate : styles.versionStatusTextOk,
+                ]}>
+                {updateRequired ? `Update: v${latestVersion}` : 'Up to Date'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Description line */}
+          <Text style={styles.appVersionDesc}>
+            {updateStatus === 'checking'
+              ? 'Checking backend for updates...'
+              : updateRequired
+              ? `A newer version (v${latestVersion}) is available on the server. Update to enjoy the latest features and fixes.`
+              : `Your app is running the latest version (v${cleanCurrentVersion}). No update required.`}
+          </Text>
+
+          {/* Action Row */}
+          <View style={styles.appVersionActionsRow}>
+            {updateRequired ? (
+              <TouchableOpacity
+                style={styles.updateAppBtn}
+                onPress={performUpdate}
+                activeOpacity={0.85}>
+                <ArrowDownCircle size={16} color="#0F172A" strokeWidth={2.4} />
+                <Text style={styles.updateAppBtnText}>Update App Now</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              style={[styles.checkUpdateBtn, updateRequired && styles.checkUpdateBtnSecondary]}
+              onPress={() => checkForUpdates(true)}
+              disabled={updateStatus === 'checking'}
+              activeOpacity={0.85}>
+              {updateStatus === 'checking' ? (
+                <ActivityIndicator size="small" color="#0F172A" />
+              ) : (
+                <>
+                  <RotateCcw size={14} color="#0F172A" strokeWidth={2} />
+                  <Text style={styles.checkUpdateBtnText}>Check for Updates</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Footer Support Banner */}
         <View style={styles.menuFooter}>
           <Text style={styles.footerBrand}>Pharsyde Cannabis Dispensary</Text>
-          <Text style={styles.footerSub}>Winnipeg, Manitoba • Licensed by LGCA</Text>
-          <Text style={styles.footerVersion}>App Version 1.0.0 (Build 2026)</Text>
+          <Text style={styles.footerSub}>Winnipeg, Manitoba, Canada</Text>
+          <Text style={styles.footerVersion}>App Version {cleanCurrentVersion} (Build 2026)</Text>
         </View>
       </ScrollView>
     );
@@ -784,11 +948,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
   },
+  scrollView: {
+    flex: 1,
+  },
 
   /* ── Main Menu ── */
   menuScroll: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 120,
   },
   menuBrandBanner: {
     backgroundColor: '#FFFFFF',
@@ -952,7 +1119,7 @@ const styles = StyleSheet.create({
   /* ── Subpages Common ── */
   subpageScroll: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 150,
   },
   pageHeaderBanner: {
     marginBottom: 20,
@@ -1369,6 +1536,221 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 13,
     fontWeight: '800',
+    color: '#0F172A',
+  },
+
+  // Curated Drops Section
+  curatedSection: {
+    marginBottom: 20,
+  },
+  curatedSectionHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  menuSectionHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  curatedCardsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  menuCuratedCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  menuCuratedNew: {
+    backgroundColor: '#092612',
+    borderColor: 'rgba(142, 247, 5, 0.4)',
+  },
+  menuCuratedBest: {
+    backgroundColor: '#261908',
+    borderColor: 'rgba(245, 158, 11, 0.45)',
+  },
+  menuCuratedTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  menuCuratedIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuCuratedBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  menuCuratedBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  menuCuratedTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginBottom: 3,
+  },
+  menuCuratedSub: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  menuCuratedLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  menuCuratedLinkText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+
+  // App Version & Update Card
+  appVersionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 12,
+  },
+  appVersionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  appVersionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  appVersionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(142, 247, 5, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appVersionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT,
+  },
+  appVersionSub: {
+    fontSize: 11,
+    color: MUTED,
+    marginTop: 2,
+  },
+  appVersionSubBold: {
+    fontWeight: '700',
+    color: TEXT,
+  },
+  versionStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  versionStatusPillOk: {
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+  },
+  versionStatusPillUpdate: {
+    backgroundColor: '#FEE2E2',
+  },
+  versionStatusText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  versionStatusTextOk: {
+    color: '#059669',
+  },
+  versionStatusTextUpdate: {
+    color: '#DC2626',
+  },
+  appVersionDesc: {
+    fontSize: 11.5,
+    color: '#475569',
+    lineHeight: 16,
+  },
+  appVersionActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 2,
+  },
+  updateAppBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: ACCENT,
+    height: 40,
+    borderRadius: 10,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  updateAppBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  checkUpdateBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  checkUpdateBtnSecondary: {
+    flex: 0.8,
+  },
+  checkUpdateBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#0F172A',
   },
 });

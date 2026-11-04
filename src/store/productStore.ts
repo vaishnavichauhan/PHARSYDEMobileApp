@@ -46,9 +46,20 @@ export const SORT_LABELS: Record<SortOption, string> = {
   thc_desc: 'THC: High to Low',
 };
 
+export interface FetchProductsOptions {
+  search?: string;
+  category?: string;
+  sort?: SortOption;
+  limit?: number;
+  hasImage?: boolean;
+  isRefresh?: boolean;
+}
+
 interface ProductState {
   products: Product[];
+  categories: string[];
   isLoading: boolean;
+  isSearching: boolean;
   isRefreshing: boolean;
   error: string | null;
 
@@ -61,7 +72,8 @@ interface ProductState {
   favorites: Record<string, boolean>;
 
   // Actions
-  fetchProducts: () => Promise<void>;
+  fetchProducts: (options?: FetchProductsOptions) => Promise<void>;
+  fetchCategories: () => Promise<void>;
   refreshProducts: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: string) => void;
@@ -72,7 +84,9 @@ interface ProductState {
 
 export const useProductStore = create<ProductState>((set, get) => ({
   products: [],
+  categories: ['All'],
   isLoading: true,
+  isSearching: false,
   isRefreshing: false,
   error: null,
 
@@ -81,11 +95,70 @@ export const useProductStore = create<ProductState>((set, get) => ({
   selectedSort: 'default',
   favorites: {},
 
-  /** Fetch products from backend API */
-  fetchProducts: async () => {
+  /** Fetch all categories from backend */
+  fetchCategories: async () => {
     try {
-      set({ isLoading: true, error: null });
-      const res = await fetch(API_ENDPOINTS.products);
+      const res = await fetch(API_ENDPOINTS.categories);
+      const json = await res.json();
+      if (json && Array.isArray(json.categories)) {
+        set({ categories: ['All', ...json.categories] });
+      }
+    } catch (err) {
+      console.warn('ProductStore: Failed to fetch categories:', err);
+    }
+  },
+
+  /** Fetch products from backend API with server-side search & filtering */
+  fetchProducts: async (options?: FetchProductsOptions) => {
+    const isRefresh = options?.isRefresh ?? false;
+    const hasExistingProducts = get().products.length > 0;
+
+    try {
+      if (isRefresh) {
+        set({ isRefreshing: true, error: null });
+      } else if (!hasExistingProducts) {
+        set({ isLoading: true, error: null });
+      } else {
+        // While searching or filtering on an already loaded view, do not unmount UI
+        set({ isSearching: true, error: null });
+      }
+
+      const activeSearch = options?.search !== undefined ? options.search : get().searchQuery;
+      const activeCategory = options?.category !== undefined ? options.category : get().selectedCategory;
+      const activeSort = options?.sort !== undefined ? options.sort : get().selectedSort;
+
+      const params = new URLSearchParams();
+      if (activeSearch && activeSearch.trim()) {
+        params.append('search', activeSearch.trim());
+      }
+      if (activeCategory && activeCategory !== 'All') {
+        params.append('category', activeCategory);
+      }
+
+      // Default to hasImage=true exactly like the web frontend productService.js
+      const shouldFilterImage = options?.hasImage !== undefined ? options.hasImage : true;
+      if (shouldFilterImage) {
+        params.append('hasImage', 'true');
+      }
+
+      if (activeSort === 'price_asc') {
+        params.append('sortBy', 'retail_price');
+        params.append('sortOrder', 'ASC');
+      } else if (activeSort === 'price_desc') {
+        params.append('sortBy', 'retail_price');
+        params.append('sortOrder', 'DESC');
+      } else if (activeSort === 'name_asc') {
+        params.append('sortBy', 'product_name');
+        params.append('sortOrder', 'ASC');
+      } else {
+        params.append('sortBy', 'modified');
+        params.append('sortOrder', 'DESC');
+      }
+
+      params.append('limit', String(options?.limit ?? 100));
+
+      const url = `${API_ENDPOINTS.products}?${params.toString()}`;
+      const res = await fetch(url);
       const json = await res.json();
       const list: Product[] = Array.isArray(json)
         ? json
@@ -94,34 +167,27 @@ export const useProductStore = create<ProductState>((set, get) => ({
         : Array.isArray(json.data)
         ? json.data
         : [];
-      set({ products: list, isLoading: false });
+
+      set({
+        products: list,
+        isLoading: false,
+        isSearching: false,
+        isRefreshing: false,
+      });
     } catch (err: any) {
       console.warn('ProductStore: Failed to fetch products:', err);
       set({
         error: err?.message || 'Failed to load products',
         isLoading: false,
+        isSearching: false,
+        isRefreshing: false,
       });
     }
   },
 
   /** Pull to refresh */
   refreshProducts: async () => {
-    try {
-      set({ isRefreshing: true, error: null });
-      const res = await fetch(API_ENDPOINTS.products);
-      const json = await res.json();
-      const list: Product[] = Array.isArray(json)
-        ? json
-        : Array.isArray(json.products)
-        ? json.products
-        : Array.isArray(json.data)
-        ? json.data
-        : [];
-      set({ products: list, isRefreshing: false });
-    } catch (err: any) {
-      console.warn('ProductStore: Refresh failed:', err);
-      set({ isRefreshing: false });
-    }
+    await get().fetchProducts({ isRefresh: true });
   },
 
   setSearchQuery: (query: string) => set({ searchQuery: query }),
@@ -138,16 +204,26 @@ export const useProductStore = create<ProductState>((set, get) => ({
     });
   },
 
-  resetFilters: () =>
+  resetFilters: () => {
     set({
       searchQuery: '',
       selectedCategory: 'All',
       selectedSort: 'default',
-    }),
+    });
+    get().fetchProducts({
+      search: '',
+      category: 'All',
+      sort: 'default',
+      hasImage: true,
+    });
+  },
 }));
 
 /** Selector: Get all distinct categories */
 export const selectCategories = (state: ProductState): string[] => {
+  if (state.categories && state.categories.length > 1) {
+    return state.categories;
+  }
   const set = new Set<string>();
   state.products.forEach(p => {
     if (p.category && p.category.trim()) {
@@ -161,43 +237,8 @@ export const selectCategories = (state: ProductState): string[] => {
 export const selectFilteredProducts = (state: ProductState): Product[] => {
   let result = [...state.products];
 
-  // Search filter
-  if (state.searchQuery.trim()) {
-    const q = state.searchQuery.toLowerCase().trim();
-    result = result.filter(p => {
-      const nameMatch = p.product_name?.toLowerCase().includes(q);
-      const brandMatch = p.brand?.toLowerCase().includes(q);
-      const skuMatch = p.sku?.toLowerCase().includes(q);
-      const catMatch = p.category?.toLowerCase().includes(q);
-      return nameMatch || brandMatch || skuMatch || catMatch;
-    });
-  }
-
-  // Category filter
-  if (state.selectedCategory !== 'All') {
-    result = result.filter(
-      p =>
-        p.category?.trim().toLowerCase() ===
-        state.selectedCategory.toLowerCase(),
-    );
-  }
-
-  // Sorting
-  if (state.selectedSort === 'price_asc') {
-    result.sort(
-      (a, b) =>
-        parseFloat(a.retail_price || '0') - parseFloat(b.retail_price || '0'),
-    );
-  } else if (state.selectedSort === 'price_desc') {
-    result.sort(
-      (a, b) =>
-        parseFloat(b.retail_price || '0') - parseFloat(a.retail_price || '0'),
-    );
-  } else if (state.selectedSort === 'name_asc') {
-    result.sort((a, b) =>
-      (a.product_name || '').localeCompare(b.product_name || ''),
-    );
-  } else if (state.selectedSort === 'thc_desc') {
+  // Sorting for client-calculated fields like THC
+  if (state.selectedSort === 'thc_desc') {
     result.sort(
       (a, b) => parseFloat(b.thC_LEVEL || '0') - parseFloat(a.thC_LEVEL || '0'),
     );

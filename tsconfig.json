@@ -1,5 +1,11 @@
 {
   "extends": "@react-native/typescript-config",
-  "include": ["**/*.ts", "**/*.tsx"],
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "paths": {
+      "react-native-swiper-flatlist": ["./src/types/react-native-swiper-flatlist.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "App.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]
 }

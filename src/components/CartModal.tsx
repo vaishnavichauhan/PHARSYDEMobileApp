@@ -40,6 +40,8 @@ import {
   TAX_RATE,
   STANDARD_DELIVERY_FEE,
 } from '../store/cartStore';
+import { useCheckoutStore } from '../store/checkoutStore';
+import { resolveImageUrl } from '../config/api';
 
 interface CartModalProps {
   onNavigateToCatalog?: () => void;
@@ -53,6 +55,7 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
   const totalPrice = useCartStore(state => state.totalPrice);
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeFromCart = useCartStore(state => state.removeFromCart);
+  const openCheckout = useCheckoutStore(state => state.openCheckout);
 
   // Promo code
   const promoCode = useCartStore(state => state.promoCode);
@@ -87,13 +90,8 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
   );
 
   const handleCheckout = () => {
-    Alert.alert(
-      'Secure Checkout',
-      `Proceeding to checkout with total $${finalTotal.toFixed(
-        2,
-      )} CAD.\n19+ Age Verification will be conducted at delivery/pickup.`,
-      [{ text: 'OK', onPress: () => closeCart() }],
-    );
+    closeCart();
+    openCheckout();
   };
 
   const handleExplore = () => {
@@ -200,7 +198,7 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
                     <View style={styles.thumbWrap}>
                       {product.imageUrl ? (
                         <Image
-                          source={{ uri: product.imageUrl }}
+                          source={{ uri: resolveImageUrl(product.imageUrl) || product.imageUrl }}
                           style={styles.itemImage}
                           resizeMode="contain"
                         />

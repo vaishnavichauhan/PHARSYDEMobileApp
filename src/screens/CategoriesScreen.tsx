@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   ArrowLeft,
   Search,
@@ -31,8 +31,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react-native';
-import { API_ENDPOINTS } from '../config/api';
-import { Product } from '../store/productStore';
+import { API_ENDPOINTS, resolveImageUrl } from '../config/api';
+import { Product, useProductStore } from '../store/productStore';
 import { useCartStore } from '../store/cartStore';
 import { useProductDetailStore } from '../store/productDetailStore';
 
@@ -50,17 +50,24 @@ interface CategoryItem {
   icon: any;
 }
 
-const DEFAULT_CATEGORIES: CategoryItem[] = [
-  { id: 'all', name: 'All Items', backendName: '', icon: Sparkles },
-  { id: 'flower', name: 'Dried Flower', backendName: 'Dried Flower', icon: Leaf },
-  { id: 'preroll', name: 'Pre-Rolled', backendName: 'PRE-ROLLED', icon: Flame },
-  { id: 'fortified', name: 'Fortified', backendName: 'FORTIFIED PRE-ROLLED', icon: Zap },
-  { id: 'vape', name: 'Vapes', backendName: 'Vape', icon: Zap },
-  { id: 'cartridge', name: '510 Carts', backendName: 'CARTRIDGE 510', icon: Layers },
-  { id: 'edibles', name: 'Edibles', backendName: 'Edibles-Candy/Chocolate/Confec', icon: Cookie },
-  { id: 'extracts', name: 'Extracts', backendName: 'Extracts Inhaled', icon: Droplets },
-  { id: 'nicotine', name: 'Nicotine', backendName: 'Nicotine Vapes', icon: Package },
-];
+const ALL_CATEGORY: CategoryItem = {
+  id: 'all',
+  name: 'All Items',
+  backendName: '',
+  icon: Sparkles,
+};
+
+const getCategoryIcon = (categoryName: string) => {
+  const lower = categoryName.toLowerCase();
+  if (lower.includes('flower') || lower.includes('bud')) return Leaf;
+  if (lower.includes('roll')) return Flame;
+  if (lower.includes('vape') || lower.includes('cartridge')) return Zap;
+  if (lower.includes('edible') || lower.includes('cand') || lower.includes('choc')) return Cookie;
+  if (lower.includes('extract') || lower.includes('rosin') || lower.includes('oil') || lower.includes('kief')) return Droplets;
+  if (lower.includes('topical') || lower.includes('balm') || lower.includes('bath') || lower.includes('lotion')) return Sparkles;
+  if (lower.includes('access') || lower.includes('pod') || lower.includes('lighter')) return Layers;
+  return Package;
+};
 
 interface CategoriesScreenProps {
   navigation?: any;
@@ -70,84 +77,113 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
   const hookNavigation = useNavigation<any>();
   const navigation = propNavigation || hookNavigation;
 
-  // Navigation
+  // Navigation - left arrow returns directly to Home screen
   const handleBack = () => {
-    if (navigation?.canGoBack && navigation.canGoBack()) {
-      navigation.goBack();
-    } else if (navigation?.navigate) {
-      navigation.navigate('Home');
+    try {
+      if (navigation?.navigate) {
+        navigation.navigate('Home');
+        return;
+      }
+      if (navigation?.jumpTo) {
+        navigation.jumpTo('Home');
+        return;
+      }
+      const parent = navigation?.getParent?.();
+      if (parent?.navigate) {
+        parent.navigate('Home');
+        return;
+      }
+      if (navigation?.goBack) {
+        navigation.goBack();
+      }
+    } catch (err) {
+      console.warn('Categories back navigation error:', err);
     }
   };
 
-  // Cart Store & Actions
-  const cartItemCount = useCartStore(state => state.totalCount);
-  const addToCart = useCartStore(state => state.addToCart);
-  const openCart = useCartStore(state => state.openCart);
-
-  // Product Detail Store
-  const openDetail = useProductDetailStore(state => state.openDetail);
-
-  // Sidebar toggle state (dynamically closes when a category is selected)
+  // ── Local State (Primitive Hooks First) ──────────────────────
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-
-  // Categories & Selected state
-  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryItem>(DEFAULT_CATEGORIES[0]);
-
-  // Products state
+  const [categories, setCategories] = useState<CategoryItem[]>([ALL_CATEGORY]);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryItem>(ALL_CATEGORY);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
-  // Search in categories
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [addedPopupId, setAddedPopupId] = useState<string | null>(null);
 
-  // Fetch all categories from backend to make sure all available ones are included
-  useEffect(() => {
-    const discoverCategories = async () => {
-      try {
-        const res = await fetch(`${API_ENDPOINTS.products}?limit=300`);
-        const json = await res.json();
-        const list: Product[] = Array.isArray(json)
-          ? json
-          : Array.isArray(json.products)
-          ? json.products
-          : [];
-        if (list.length > 0) {
-          const found = new Set<string>();
-          list.forEach(p => {
-            if (p.category && p.category.trim()) found.add(p.category.trim());
-          });
+  // ── Zustand Stores ───────────────────────────────────────────
+  const storeCategories = useProductStore(state => state.categories);
+  const fetchStoreCategories = useProductStore(state => state.fetchCategories);
+  const cartItemCount = useCartStore(state => state.totalCount);
+  const addToCart = useCartStore(state => state.addToCart);
+  const openCart = useCartStore(state => state.openCart);
+  const openDetail = useProductDetailStore(state => state.openDetail);
 
-          // Build dynamic list preserving defaults
-          const existingBackendNames = new Set(DEFAULT_CATEGORIES.map(c => c.backendName));
-          const additional: CategoryItem[] = [];
-          found.forEach(cat => {
-            if (!existingBackendNames.has(cat)) {
-              additional.push({
-                id: cat.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-                name: cat,
-                backendName: cat,
-                icon: Package,
-              });
-            }
-          });
-          if (additional.length > 0) {
-            setCategories([...DEFAULT_CATEGORIES, ...additional]);
-          }
+  // Load real categories dynamically from backend API / productStore
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRealCategories = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.categories);
+        const json = await res.json();
+        const categoryList: string[] = Array.isArray(json?.categories) ? json.categories : [];
+
+        if (isMounted && categoryList.length > 0) {
+          const dynamicCategories: CategoryItem[] = [
+            ALL_CATEGORY,
+            ...categoryList
+              .filter(cat => cat && typeof cat === 'string' && cat.trim())
+              .map(cat => {
+                const trimmed = cat.trim();
+                return {
+                  id: trimmed.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                  name: trimmed,
+                  backendName: trimmed,
+                  icon: getCategoryIcon(trimmed),
+                };
+              }),
+          ];
+          setCategories(dynamicCategories);
         }
       } catch (err) {
-        console.warn('Failed to discover categories:', err);
+        console.warn('Failed to load real categories from backend:', err);
       }
     };
 
-    discoverCategories();
+    loadRealCategories();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Fetch products for currently selected category
-  const fetchProductsForCategory = async (backendCategory: string, isRefresh = false) => {
+  // ── Reset Filters when navigating away to another screen or returning ──
+  useFocusEffect(
+    useCallback(() => {
+      // If returning to Categories and filters/search were dirty, reset to default All Items
+      setSelectedCategory(prev => (prev.id !== ALL_CATEGORY.id ? ALL_CATEGORY : prev));
+      setSearchQuery('');
+      setShowSearch(false);
+      setIsSidebarOpen(true);
+
+      return () => {
+        // Reset category and search filters when navigating away from Categories screen
+        setSelectedCategory(ALL_CATEGORY);
+        setSearchQuery('');
+        setShowSearch(false);
+        setIsSidebarOpen(true);
+      };
+    }, [])
+  );
+
+  // Fetch products for currently selected category and search query
+  const fetchProductsForCategory = async (
+    backendCategory: string,
+    search: string = '',
+    isRefresh = false,
+  ) => {
     if (isRefresh) {
       setIsRefreshing(true);
     } else {
@@ -155,9 +191,17 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
     }
 
     try {
-      const url = backendCategory
-        ? `${API_ENDPOINTS.products}?category=${encodeURIComponent(backendCategory)}&limit=100`
-        : `${API_ENDPOINTS.products}?limit=100`;
+      const params = new URLSearchParams();
+      if (backendCategory) {
+        params.append('category', backendCategory);
+      }
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+      params.append('hasImage', 'true');
+      params.append('limit', '100');
+
+      const url = `${API_ENDPOINTS.products}?${params.toString()}`;
       const res = await fetch(url);
       const json = await res.json();
       const list: Product[] = Array.isArray(json)
@@ -177,11 +221,14 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
   };
 
   useEffect(() => {
-    fetchProductsForCategory(selectedCategory.backendName);
-  }, [selectedCategory]);
+    const timer = setTimeout(() => {
+      fetchProductsForCategory(selectedCategory.backendName, searchQuery);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [selectedCategory, searchQuery]);
 
   const handleRefresh = () => {
-    fetchProductsForCategory(selectedCategory.backendName, true);
+    fetchProductsForCategory(selectedCategory.backendName, searchQuery, true);
   };
 
   // Filter products by search query
@@ -192,7 +239,8 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
       const name = p.product_name?.toLowerCase() || '';
       const brand = p.brand?.toLowerCase() || '';
       const sku = p.sku?.toLowerCase() || '';
-      return name.includes(q) || brand.includes(q) || sku.includes(q);
+      const cat = p.category?.toLowerCase() || '';
+      return name.includes(q) || brand.includes(q) || sku.includes(q) || cat.includes(q);
     });
   }, [products, searchQuery]);
 
@@ -277,9 +325,9 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
           onPress={() => openDetail(item)}>
           {item.imageUrl ? (
             <Image
-              source={{ uri: item.imageUrl }}
+              source={{ uri: resolveImageUrl(item.imageUrl) || item.imageUrl }}
               style={styles.productImage}
-              resizeMode="contain"
+              resizeMode="cover"
             />
           ) : (
             <View style={styles.noImage}>
@@ -340,22 +388,24 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
       {/* ── Header ────────────────────────────────────────────── */}
       <View style={styles.header}>
         {/* Left: Back Arrow */}
-        <TouchableOpacity
-          style={[styles.iconButton, styles.backButton]}
-          onPress={handleBack}
-          activeOpacity={0.7}
-          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}>
-          <ArrowLeft size={22} color="#0F172A" strokeWidth={2.2} />
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleBack}
+            activeOpacity={0.7}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+            <ArrowLeft size={22} color="#0F172A" strokeWidth={2.2} />
+          </TouchableOpacity>
+        </View>
 
-        {/* Center: Title (in bounded non-blocking wrapper) */}
-        <View style={styles.headerTitleWrap} pointerEvents="none">
+        {/* Center: Title */}
+        <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
             Categories
           </Text>
         </View>
 
-        {/* Right: Categories Toggle, Search & Cart Icons */}
+        {/* Right: Search & Cart Icons */}
         <View style={styles.rightActions}>
           {/* <TouchableOpacity
             style={[styles.iconButton, isSidebarOpen && styles.iconButtonActive]}
@@ -465,7 +515,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
           </View>
 
           {/* Product Grid / Loading / Empty */}
-          {isLoading ? (
+          {isLoading && products.length === 0 ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color="#488203" />
             </View>
@@ -480,6 +530,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
               showsVerticalScrollIndicator={false}
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
+              keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyEmoji}>🌿</Text>
@@ -529,22 +580,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     backgroundColor: '#FFFFFF',
-    position: 'relative',
     zIndex: 10,
   },
-  backButton: {
-    zIndex: 25,
-    elevation: 6,
+  headerLeft: {
+    width: 84,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
-  headerTitleWrap: {
-    position: 'absolute',
-    left: 60,
-    right: 120,
-    top: 0,
-    bottom: 0,
+  headerCenter: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1,
   },
   headerTitle: {
     textAlign: 'center',
@@ -554,8 +600,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   rightActions: {
+    width: 84,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 8,
     zIndex: 20,
   },
@@ -631,6 +679,7 @@ const styles = StyleSheet.create({
   },
   sidebarContent: {
     paddingVertical: 6,
+    paddingBottom: 110,
   },
   categorySidebarItem: {
     alignItems: 'center',
@@ -730,7 +779,7 @@ const styles = StyleSheet.create({
   },
   productsListContent: {
     padding: 10,
-    paddingBottom: 24,
+    paddingBottom: 110,
   },
   productRow: {
     justifyContent: 'space-between',
@@ -756,15 +805,17 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 100,
-    backgroundColor: '#F8FAFC',
+    height: CARD_WIDTH,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    padding: 4,
+    padding: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   imageContainerFull: {
-    height: 125,
+    height: FULL_CARD_WIDTH,
   },
   productImage: {
     width: '100%',

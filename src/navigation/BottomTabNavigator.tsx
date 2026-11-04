@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   House,
   ChartColumn,
@@ -44,11 +45,21 @@ function TabIcon({
 }
 
 const BottomTabNavigator = () => {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === 'ios' ? 24 : Math.max(insets.bottom, 12);
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: Platform.OS === 'ios' ? 88 : 62 + bottomInset,
+            paddingBottom: bottomInset,
+          },
+        ],
         tabBarShowLabel: false,
       }}>
       <Tab.Screen
@@ -96,13 +107,10 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BG,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    elevation: 8,
-    height: Platform.OS === 'ios' ? 88 : 70,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    position: 'absolute',
+    elevation: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 6,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,

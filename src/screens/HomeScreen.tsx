@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,9 @@ import {
   Dimensions,
   ActivityIndicator,
   Modal,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   CircleUser,
   Search,
@@ -24,6 +23,10 @@ import {
   X,
   Check,
   ShoppingCart,
+  Sparkles,
+  Crown,
+  ArrowRight,
+  Flame,
 } from 'lucide-react-native';
 import {
   useProductStore,
@@ -31,15 +34,18 @@ import {
   SortOption,
   Product,
 } from '../store/productStore';
+import { resolveImageUrl } from '../config/api';
 import { useCartStore } from '../store/cartStore';
 import { useProductDetailStore } from '../store/productDetailStore';
+import { useProfileStore } from '../store/profileStore';
+import { useCuratedStore } from '../store/curatedStore';
+import { SwiperFlatList } from 'react-native-swiper-flatlist';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HORIZONTAL_PADDING = 16;
-const BANNER_SPACING = 12;
+const HORIZONTAL_PADDING = 14;
 const BANNER_WIDTH = SCREEN_WIDTH - HORIZONTAL_PADDING * 2;
 const BANNER_HEIGHT = 180;
-const CARD_GAP = 12;
+const CARD_GAP = 10;
 const CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
 
 const HERO_IMAGES = [
@@ -48,43 +54,80 @@ const HERO_IMAGES = [
   { id: '3', source: require('../assets/Images/hero3.png') },
 ];
 
-const HomeScreen = () => {
-  // Hero Carousel State (local carousel UI state)
-  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
-  const scrollRef = useRef<any>(null);
+const HeroSwiper = React.memo(() => {
+  return (
+    <View style={styles.heroSection}>
+      <SwiperFlatList
+        autoplay
+        autoplayDelay={3}
+        autoplayLoop
+        autoplayLoopKeepAnimation
+        data={HERO_IMAGES}
+        index={0}
+        showPagination
+        paginationActiveColor="#488203"
+        paginationDefaultColor="#CBD5E1"
+        paginationStyleItem={styles.paginationDot}
+        paginationStyleItemActive={styles.paginationDotActive}
+        paginationStyleItemInactive={styles.paginationDotInactive}
+        paginationStyle={styles.paginationContainer}
+        renderItem={({ item }: { item: (typeof HERO_IMAGES)[0] }) => (
+          <View style={styles.slideItemContainer}>
+            <View style={styles.bannerCard}>
+              <Image
+                source={item.source}
+                style={styles.bannerImage}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+        )}
+      />
+    </View>
+  );
+});
 
-  // Zustand Store: Product State
+const HomeScreen = () => {
+  // ── Local State & Refs (Primitive Hooks First) ───────────────
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [searchText, setSearchText] = useState('');
+
+  // ── Zustand Store: Product State & Actions ───────────────────
   const products = useProductStore(state => state.products);
   const isLoading = useProductStore(state => state.isLoading);
+  const isSearching = useProductStore(state => state.isSearching);
   const isRefreshing = useProductStore(state => state.isRefreshing);
   const searchQuery = useProductStore(state => state.searchQuery);
   const selectedCategory = useProductStore(state => state.selectedCategory);
   const selectedSort = useProductStore(state => state.selectedSort);
-  const favorites = useProductStore(state => state.favorites);
-
-  // Zustand Store: Actions
   const fetchProducts = useProductStore(state => state.fetchProducts);
   const refreshProducts = useProductStore(state => state.refreshProducts);
   const setSearchQuery = useProductStore(state => state.setSearchQuery);
   const setSelectedCategory = useProductStore(state => state.setSelectedCategory);
   const setSelectedSort = useProductStore(state => state.setSelectedSort);
-  const toggleFavorite = useProductStore(state => state.toggleFavorite);
   const resetFilters = useProductStore(state => state.resetFilters);
 
-  // Zustand Store: Cart Actions & Count
+  // ── Zustand Store: Cart & Modals ─────────────────────────────
   const addToCart = useCartStore(state => state.addToCart);
   const openCart = useCartStore(state => state.openCart);
   const cartCount = useCartStore(state => state.totalCount);
-
-  // Zustand Store: Product Detail Modal
   const openDetail = useProductDetailStore(state => state.openDetail);
+  const openProfile = useProfileStore(state => state.openProfile);
 
-  // Local UI Modals
-  const [showSortModal, setShowSortModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  // ── Curated Store (New Arrivals & Best Sellers) ──────────────
+  const openCuratedModal = useCuratedStore(state => state.openCuratedModal);
+  const newArrivals = useCuratedStore(state => state.newArrivals);
+  const bestSellers = useCuratedStore(state => state.bestSellers);
 
-  // Memoized categories & filtered products from Zustand state
+  const storeCategories = useProductStore(state => state.categories);
+  const fetchCategories = useProductStore(state => state.fetchCategories);
+
+  // Use all categories from backend if loaded, fallback to derived set
   const categories = useMemo(() => {
+    if (storeCategories && storeCategories.length > 1) {
+      return storeCategories;
+    }
     const set = new Set<string>();
     products.forEach(p => {
       if (p.category && p.category.trim()) {
@@ -92,123 +135,122 @@ const HomeScreen = () => {
       }
     });
     return ['All', ...Array.from(set)];
-  }, [products]);
+  }, [storeCategories, products]);
+
+  // Load distinct categories once on mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // ── Reset Filters when navigating away to another screen or returning to Home ──
+  useFocusEffect(
+    useCallback(() => {
+      // If returning to Home and filters are non-default, reset them
+      const state = useProductStore.getState();
+      if (
+        state.selectedCategory !== 'All' ||
+        state.selectedSort !== 'default' ||
+        state.searchQuery !== ''
+      ) {
+        setSearchText('');
+        resetFilters();
+      }
+
+      return () => {
+        // Reset filters when navigating away from Home screen
+        setSearchText('');
+        resetFilters();
+        setShowSortModal(false);
+        setShowCategoryModal(false);
+      };
+    }, [resetFilters])
+  );
+
+  // Sync external filter resets to local search text
+  useEffect(() => {
+    if (searchQuery === '' && searchText !== '') {
+      setSearchText('');
+    }
+  }, [searchQuery]);
+
+  // Server-side search & filtering debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchText);
+      fetchProducts({
+        search: searchText,
+        category: selectedCategory,
+        sort: selectedSort,
+        hasImage: true,
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText, selectedCategory, selectedSort, fetchProducts, setSearchQuery]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(p => {
-        const nameMatch = p.product_name?.toLowerCase().includes(q);
-        const brandMatch = p.brand?.toLowerCase().includes(q);
-        const skuMatch = p.sku?.toLowerCase().includes(q);
-        const catMatch = p.category?.toLowerCase().includes(q);
-        return nameMatch || brandMatch || skuMatch || catMatch;
-      });
-    }
-
-    if (selectedCategory !== 'All') {
-      result = result.filter(
-        p => p.category?.trim().toLowerCase() === selectedCategory.toLowerCase(),
-      );
-    }
-
-    if (selectedSort === 'price_asc') {
-      result.sort((a, b) => parseFloat(a.retail_price || '0') - parseFloat(b.retail_price || '0'));
-    } else if (selectedSort === 'price_desc') {
-      result.sort((a, b) => parseFloat(b.retail_price || '0') - parseFloat(a.retail_price || '0'));
-    } else if (selectedSort === 'name_asc') {
-      result.sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''));
-    } else if (selectedSort === 'thc_desc') {
+    // Client-side THC sorting
+    if (selectedSort === 'thc_desc') {
       result.sort((a, b) => parseFloat(b.thC_LEVEL || '0') - parseFloat(a.thC_LEVEL || '0'));
     }
 
     return result;
-  }, [products, searchQuery, selectedCategory, selectedSort]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  const onBannerScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const slide = Math.round(offsetX / (BANNER_WIDTH + BANNER_SPACING));
-    if (slide !== activeBannerIndex && slide >= 0 && slide < HERO_IMAGES.length) {
-      setActiveBannerIndex(slide);
-    }
-  };
+  }, [products, selectedSort]);
 
   // ── Header Component for FlatList ───────────────────────────
   const renderHeader = () => (
     <View style={styles.headerContent}>
-      {/* ── 1. Hero Carousel ──────────────────────────────────── */}
-      <View style={styles.heroSection}>
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled={false}
-          snapToInterval={BANNER_WIDTH + BANNER_SPACING}
-          snapToAlignment="center"
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          onScroll={onBannerScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={styles.carouselContainer}>
-          {HERO_IMAGES.map((item, index) => (
-            <View
-              key={item.id}
-              style={[
-                styles.bannerCard,
-                index === HERO_IMAGES.length - 1 && styles.lastBannerCard,
-              ]}>
-              <Image
-                source={item.source}
-                style={styles.bannerImage}
-                resizeMode="cover"
-              />
+      {/* ── 1. Hero Carousel using react-native-swiper-flatlist ── */}
+      <HeroSwiper />
+
+      {/* ── Curated Collections: New Arrivals & Best Sellers ── */}
+      <View style={styles.curatedCardsRow}>
+        {/* New Arrivals Feature Card */}
+        <TouchableOpacity
+          style={[styles.curatedCard, styles.curatedCardNew]}
+          activeOpacity={0.85}
+          onPress={() => openCuratedModal('new-arrivals')}>
+          <View style={styles.curatedCardTop}>
+            <View style={[styles.curatedBadge, styles.curatedBadgeNew]}>
+              <Sparkles size={11} color="#8EF705" />
+              <Text style={styles.curatedBadgeTextNew}>FRESH DROPS</Text>
             </View>
-          ))}
-        </ScrollView>
+          </View>
+          <Text style={styles.curatedCardTitle}>New Arrivals</Text>
+          <Text style={styles.curatedCardSub}>
+            {newArrivals.length > 0 ? `${newArrivals.length} new items` : 'Latest additions'}
+          </Text>
+          <View style={styles.curatedActionRow}>
+            <Text style={styles.curatedActionText}>Explore Drops</Text>
+            <ArrowRight size={13} color="#8EF705" strokeWidth={2.4} />
+          </View>
+        </TouchableOpacity>
 
-        {/* Carousel Dots */}
-        <View style={styles.paginationRow}>
-          {HERO_IMAGES.map((_, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.dot,
-                idx === activeBannerIndex ? styles.activeDot : styles.inactiveDot,
-              ]}
-            />
-          ))}
-        </View>
+        {/* Best Sellers Feature Card */}
+        <TouchableOpacity
+          style={[styles.curatedCard, styles.curatedCardBest]}
+          activeOpacity={0.85}
+          onPress={() => openCuratedModal('best-sellers')}>
+          <View style={styles.curatedCardTop}>
+            <View style={[styles.curatedBadge, styles.curatedBadgeBest]}>
+              <Crown size={11} color="#F59E0B" />
+              <Text style={styles.curatedBadgeTextBest}>TOP RATED</Text>
+            </View>
+          </View>
+          <Text style={styles.curatedCardTitle}>Best Sellers</Text>
+          <Text style={styles.curatedCardSub}>
+            {bestSellers.length > 0 ? `${bestSellers.length} community picks` : 'Top shelf'}
+          </Text>
+          <View style={styles.curatedActionRow}>
+            <Text style={[styles.curatedActionText, { color: '#FBBF24' }]}>View Favorites</Text>
+            <ArrowRight size={13} color="#FBBF24" strokeWidth={2.4} />
+          </View>
+        </TouchableOpacity>
       </View>
 
-      {/* ── 2. Search Bar ─────────────────────────────────────── */}
-      <View style={styles.searchBarContainer}>
-        <View style={styles.searchBar}>
-          <Search size={18} color={MUTED} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by Keyword or Product ID"
-            placeholderTextColor={MUTED}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.clearSearchBtn}>
-              <X size={16} color={MUTED} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* ── 3. Sort & Category Filter Bar ─────────────────────── */}
+      {/* ── 2. Sort & Category Filter Bar ─────────────────────── */}
       <View style={styles.filterRow}>
         {/* Sort Dropdown Button */}
         <TouchableOpacity
@@ -249,7 +291,6 @@ const HomeScreen = () => {
 
   // ── Product Card Item ───────────────────────────────────────
   const renderProductItem = ({ item }: { item: Product }) => {
-    const isFav = !!favorites[item.pk];
     const strain = item.strain;
 
     // Strain badge color
@@ -272,9 +313,9 @@ const HomeScreen = () => {
           onPress={() => openDetail(item)}>
           {item.imageUrl ? (
             <Image
-              source={{ uri: item.imageUrl }}
+              source={{ uri: resolveImageUrl(item.imageUrl) || item.imageUrl }}
               style={styles.productImage}
-              resizeMode="contain"
+              resizeMode="cover"
             />
           ) : (
             <View style={styles.noImage}>
@@ -355,34 +396,66 @@ const HomeScreen = () => {
           />
         </View>
 
-        {/* Right: Cart and User Avatar */}
+        {/* Right: User Avatar */}
         <View style={styles.headerRightRow}>
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={openCart}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <ShoppingCart size={22} color="#0F172A" strokeWidth={1.9} />
-            {cartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>
-                  {cartCount > 99 ? '99+' : cartCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.avatarButton}
             activeOpacity={0.7}
+            onPress={() => openProfile()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <CircleUser size={26} color="#0F172A" strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* ── Fixed Search Bar & Right-Side Cart (Stable & Non-Unmounting) ── */}
+      <View style={styles.searchBarRow}>
+        <View style={styles.searchBar}>
+          <Search size={18} color={MUTED} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by Keyword or Product ID"
+            placeholderTextColor={MUTED}
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {isSearching ? (
+            <ActivityIndicator size="small" color={ACCENT_DEEP} style={{ marginRight: 6 }} />
+          ) : searchText.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchText('');
+                setSearchQuery('');
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.clearSearchBtn}>
+              <X size={16} color={MUTED} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Right side of search: Cart Icon */}
+        <TouchableOpacity
+          style={styles.searchCartButton}
+          onPress={openCart}
+          activeOpacity={0.75}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <ShoppingCart size={22} color="#0F172A" strokeWidth={1.9} />
+          {cartCount > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>
+                {cartCount > 99 ? '99+' : cartCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
       {/* ── Main FlatList Grid ────────────────────────────────── */}
-      {isLoading ? (
+      {isLoading && products.length === 0 ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={ACCENT_DEEP} />
         </View>
@@ -398,6 +471,7 @@ const HomeScreen = () => {
           renderItem={renderProductItem}
           refreshing={isRefreshing}
           onRefresh={refreshProducts}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>🔍</Text>
@@ -598,8 +672,10 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
   },
-  carouselContainer: {
-    paddingHorizontal: HORIZONTAL_PADDING,
+  slideItemContainer: {
+    width: SCREEN_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bannerCard: {
     width: BANNER_WIDTH,
@@ -607,7 +683,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    marginRight: BANNER_SPACING,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -616,39 +691,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
   },
-  lastBannerCard: {
-    marginRight: 0,
-  },
   bannerImage: {
     width: '100%',
     height: '100%',
   },
-  paginationRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  paginationContainer: {
+    position: 'relative',
     marginTop: 10,
-    gap: 6,
+    bottom: undefined,
   },
-  dot: {
+  paginationDot: {
+    height: 6,
+    width: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
+  },
+  paginationDotActive: {
+    width: 22,
     height: 6,
     borderRadius: 3,
-  },
-  activeDot: {
-    width: 22,
     backgroundColor: ACCENT_DEEP,
   },
-  inactiveDot: {
+  paginationDotInactive: {
     width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#CBD5E1',
   },
 
-  // Search Bar
-  searchBarContainer: {
+  // Search Bar & Cart Row
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: HORIZONTAL_PADDING,
     marginBottom: 14,
+    gap: 10,
   },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -657,6 +737,17 @@ const styles = StyleSheet.create({
     height: 46,
     borderWidth: 1,
     borderColor: BORDER,
+  },
+  searchCartButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
+    position: 'relative',
   },
   searchIcon: {
     marginRight: 10,
@@ -740,12 +831,14 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     width: '100%',
-    height: 140,
-    backgroundColor: '#F1F5F9',
+    height: CARD_WIDTH,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    padding: 8,
+    padding: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   productImage: {
     width: '100%',
@@ -805,23 +898,6 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 9,
     fontWeight: '600',
-  },
-  favBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
   },
   cardBody: {
     padding: 12,
@@ -977,6 +1053,93 @@ const styles = StyleSheet.create({
   modalOptionTextActive: {
     color: ACCENT_DEEP,
     fontWeight: '700',
+  },
+
+  // Curated Cards (New Arrivals & Best Sellers)
+  curatedCardsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: HORIZONTAL_PADDING,
+    gap: CARD_GAP,
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  curatedCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 13,
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  curatedCardNew: {
+    backgroundColor: '#092612',
+    borderColor: 'rgba(142, 247, 5, 0.4)',
+  },
+  curatedCardBest: {
+    backgroundColor: '#261908',
+    borderColor: 'rgba(245, 158, 11, 0.45)',
+  },
+  curatedCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  curatedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  curatedBadgeNew: {
+    backgroundColor: 'rgba(142, 247, 5, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(142, 247, 5, 0.4)',
+  },
+  curatedBadgeBest: {
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  curatedBadgeTextNew: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#8EF705',
+    letterSpacing: 0.5,
+  },
+  curatedBadgeTextBest: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.5,
+  },
+  curatedCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  curatedCardSub: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  curatedActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  curatedActionText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#8EF705',
   },
 });
 

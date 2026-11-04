@@ -17,7 +17,15 @@ import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import AgeGateModal from './src/components/AgeGateModal';
 import ProductDetailModal from './src/components/ProductDetailModal';
 import CartModal from './src/components/CartModal';
+import CheckoutModal from './src/components/CheckoutModal';
+import ProfileModal from './src/components/ProfileModal';
+import CuratedModal from './src/components/CuratedModal';
+import AppUpdateModal from './src/components/AppUpdateModal';
+import { navigationRef } from './src/navigation/navigationRef';
 import { useAgeVerificationStore } from './src/store/ageVerificationStore';
+import { useProfileStore } from './src/store/profileStore';
+import { useCuratedStore } from './src/store/curatedStore';
+import { useAppUpdateStore } from './src/store/appUpdateStore';
 
 // ── Inner App (reads store after SafeAreaProvider is mounted) ───────────────
 function AppContent() {
@@ -26,6 +34,10 @@ function AppContent() {
 
   useEffect(() => {
     initAgeVerification();
+    useProfileStore.getState().initAuth();
+    useCuratedStore.getState().fetchNewArrivals();
+    useCuratedStore.getState().fetchBestSellers();
+    useAppUpdateStore.getState().checkForUpdates();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -53,11 +65,15 @@ function AppContent() {
   return (
     <View style={styles.appContainer}>
       <StatusBar barStyle="dark-content" />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <BottomTabNavigator />
       </NavigationContainer>
       <ProductDetailModal />
       <CartModal />
+      <CheckoutModal />
+      <ProfileModal />
+      <CuratedModal />
+      <AppUpdateModal />
     </View>
   );
 }
