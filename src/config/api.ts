@@ -11,7 +11,7 @@ export const BASE_URL = "https://pharsyde.jeenhost.in"
 /**
  * Mobile Application Current Version
  */
-export const CURRENT_APP_VERSION = '1.0.0.';
+export const CURRENT_APP_VERSION = '01.05.11';
 
 /**
  * Normalizes version strings for clean comparison (e.g., '1.0.0.' -> '1.0.0')
@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
   orders: `${BASE_URL}/api/orders`,
   newArrivals: `${BASE_URL}/api/products/new-arrivals`,
   bestSellers: `${BASE_URL}/api/products/best-sellers`,
+  homeSections: `${BASE_URL}/api/products/home-sections`,
   checkUpdate: `${BASE_URL}/api/app/check-update`,
   appVersion: `${BASE_URL}/api/app/version`,
   appDownload: `${BASE_URL}/api/app/download`,

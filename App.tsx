@@ -46,7 +46,7 @@ function AppContent() {
     return (
       <View style={styles.splash}>
         <StatusBar barStyle="dark-content" />
-        <ActivityIndicator size="large" color="#8EF705" />
+        <ActivityIndicator size="large" color="#0166dc" />
       </View>
     );
   }

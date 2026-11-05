@@ -1,11 +1,14 @@
 /**
  * CartModal (Shopping Bag)
- * Matches the Pharsyde Web Frontend CartDrawer.jsx exactly:
+ * Matches the Pharsyde Web Frontend CartDrawer.jsx & Cannabis Act:
  * - Free shipping progress bar ($75 CAD threshold)
- * - Item list with thumbnails, quantity buttons, and trash removal
+ * - Cannabis 30.0g Legal Purchase Limit Progress Bar
+ * - Cart item list with thumbnail, quantity buttons, and weight line (e.g. BUD BOYS • 14.00g eq.)
  * - Promo code form (PHARSYDE10 for 10% discount)
- * - MB 12% GST+PST calculation, delivery fee, and CAD totals
- * - Secure checkout button in #8EF705
+ * - MB 12% GST+PST or Cannabis 5% GST tax breakdown
+ * - Cannabis weight breakdown row (e.g. 28.0g / 30.0g)
+ * - Exceeded warning banner & disabled checkout button when > 30.0g
+ * - Secure checkout button in #3B82F6
  * - Manitoba 19+ age compliance notice
  */
 
@@ -33,6 +36,8 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
+  Scale,
+  AlertTriangle,
 } from 'lucide-react-native';
 import {
   useCartStore,
@@ -42,6 +47,10 @@ import {
 } from '../store/cartStore';
 import { useCheckoutStore } from '../store/checkoutStore';
 import { resolveImageUrl } from '../config/api';
+import {
+  MAX_CANNABIS_GRAMS,
+  getProductWeightDisplay,
+} from '../utils/cannabisLimit';
 
 interface CartModalProps {
   onNavigateToCatalog?: () => void;
@@ -53,6 +62,8 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
   const items = useCartStore(state => state.items);
   const totalCount = useCartStore(state => state.totalCount);
   const totalPrice = useCartStore(state => state.totalPrice);
+  const totalCannabisGrams = useCartStore(state => state.totalCannabisGrams);
+  const isCannabisLimitExceeded = useCartStore(state => state.isCannabisLimitExceeded);
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeFromCart = useCartStore(state => state.removeFromCart);
   const openCheckout = useCheckoutStore(state => state.openCheckout);
@@ -78,6 +89,15 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
     FREE_SHIPPING_THRESHOLD - cartSubtotal,
   );
 
+  // Cannabis Legal Limit metrics matching CartDrawer.jsx & Cannabis Act
+  const cartCannabisGrams = totalCannabisGrams;
+  const remainingCannabis = Math.max(0, MAX_CANNABIS_GRAMS - cartCannabisGrams);
+  const excessCannabis = Math.max(0, cartCannabisGrams - MAX_CANNABIS_GRAMS);
+  const cannabisProgressPercent = Math.min(
+    100,
+    (cartCannabisGrams / MAX_CANNABIS_GRAMS) * 100,
+  );
+
   const taxableAmount = Math.max(0, cartSubtotal - promoDiscount);
   const estimatedTax = taxableAmount * TAX_RATE;
   const deliveryFee =
@@ -90,6 +110,13 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
   );
 
   const handleCheckout = () => {
+    if (isCannabisLimitExceeded) {
+      Alert.alert(
+        'Cannabis Legal Limit Exceeded',
+        `Under Canadian regulations, an order cannot exceed ${MAX_CANNABIS_GRAMS.toFixed(1)}g of dried cannabis equivalent. Current total is ${cartCannabisGrams.toFixed(1)}g. Please reduce items to checkout.`,
+      );
+      return;
+    }
     closeCart();
     openCheckout();
   };
@@ -131,11 +158,12 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
           </TouchableOpacity>
         </View>
 
-        {/* ── 2. Free Delivery Progress Bar ($75 threshold) ─────── */}
+        {/* ── 2. Delivery & Cannabis Limits Indicator ────────────── */}
         <View style={styles.deliveryProgressCard}>
+          {/* Free Winnipeg Delivery Bar */}
           <View style={styles.deliveryProgressTextRow}>
             <View style={styles.deliveryProgressLeft}>
-              <Truck size={16} color="#488203" />
+              <Truck size={16} color="#0166dc" />
               {cartSubtotal >= FREE_SHIPPING_THRESHOLD ? (
                 <Text style={styles.freeDeliveryUnlocked}>
                   Unlocked Free Winnipeg Delivery!
@@ -159,6 +187,70 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
             <View
               style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
             />
+          </View>
+
+          {/* Cannabis 30.0g Legal Limit Progress Indicator */}
+          <View style={styles.cannabisProgressRow}>
+            <View style={styles.deliveryProgressTextRow}>
+              <View style={styles.deliveryProgressLeft}>
+                <Scale
+                  size={15}
+                  color={
+                    isCannabisLimitExceeded
+                      ? '#DC2626'
+                      : cartCannabisGrams >= 25.0
+                      ? '#EA580C'
+                      : '#0166dc'
+                  }
+                />
+                {isCannabisLimitExceeded ? (
+                  <Text style={styles.cannabisLimitExceeded}>
+                    Exceeds 30.0g Legal Limit (+{excessCannabis.toFixed(1)}g)
+                  </Text>
+                ) : cartCannabisGrams >= MAX_CANNABIS_GRAMS ? (
+                  <Text style={styles.cannabisLimitReached}>
+                    Reached 30.0g Legal Purchase Limit
+                  </Text>
+                ) : (
+                  <Text style={styles.freeDeliveryNeeded}>
+                    Cannabis Legal Limit:{' '}
+                    <Text style={styles.freeDeliveryBold}>
+                      {remainingCannabis.toFixed(1)}g
+                    </Text>{' '}
+                    remaining
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.progressPercentText,
+                  isCannabisLimitExceeded && styles.progressPercentTextExceeded,
+                  !isCannabisLimitExceeded &&
+                    cartCannabisGrams >= 25.0 &&
+                    styles.progressPercentTextWarning,
+                ]}>
+                {cartCannabisGrams.toFixed(1)} / {MAX_CANNABIS_GRAMS.toFixed(1)}g (
+                {Math.round(cannabisProgressPercent)}%)
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.progressBarTrack,
+                isCannabisLimitExceeded && styles.progressBarTrackExceeded,
+              ]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  isCannabisLimitExceeded
+                    ? styles.cannabisBarFillExceeded
+                    : cannabisProgressPercent >= 80
+                    ? styles.cannabisBarFillWarning
+                    : styles.cannabisBarFillNormal,
+                  { width: `${cannabisProgressPercent}%` },
+                ]}
+              />
+            </View>
           </View>
         </View>
 
@@ -191,6 +283,7 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
                 const id = product.pk || product.sku;
                 const pPrice = parseFloat(product.retail_price || '0');
                 const lineTotal = (pPrice * item.quantity).toFixed(2);
+                const weightDisplay = getProductWeightDisplay(product);
 
                 return (
                   <View key={id} style={styles.itemCard}>
@@ -221,9 +314,10 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
                         </TouchableOpacity>
                       </View>
 
+                      {/* Brand & Weight Eq Line matching User Image (e.g. BUD BOYS • 14.00g eq.) */}
                       <Text style={styles.itemBrandLine} numberOfLines={1}>
                         {(product.brand || 'PHARSYDE').toUpperCase()} •{' '}
-                        {product.category || 'Standard Pack'}
+                        {weightDisplay || product.category || 'Standard Pack'}
                       </Text>
 
                       <View style={styles.itemBottomRow}>
@@ -281,7 +375,7 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
 
             {promoApplied ? (
               <View style={styles.promoSuccessRow}>
-                <Sparkles size={14} color="#488203" />
+                <Sparkles size={14} color="#0166dc" />
                 <Text style={styles.promoSuccessText}>
                   10% Welcome Discount Applied!
                 </Text>
@@ -308,7 +402,9 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
 
               <View style={styles.breakdownRow}>
                 <Text style={styles.breakdownLabel}>
-                  Estimated Tax (MB 12% GST+PST)
+                  {cartCannabisGrams > 0
+                    ? 'Cannabis Tax (5% GST)'
+                    : 'Estimated Tax (MB 12% GST+PST)'}
                 </Text>
                 <Text style={styles.breakdownVal}>
                   ${estimatedTax.toFixed(2)} CAD
@@ -324,26 +420,66 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
                 </Text>
               </View>
 
+              {/* Cannabis Weight Row matching User Image */}
+              {cartCannabisGrams > 0 && (
+                <View style={[styles.breakdownRow, styles.cannabisWeightRow]}>
+                  <View style={styles.cannabisWeightLeft}>
+                    <Scale size={13} color="#475569" />
+                    <Text style={styles.breakdownLabel}>Cannabis Weight</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.breakdownVal,
+                      styles.cannabisWeightVal,
+                      isCannabisLimitExceeded && styles.cannabisWeightValExceeded,
+                    ]}>
+                    {cartCannabisGrams.toFixed(1)}g / {MAX_CANNABIS_GRAMS.toFixed(1)}g
+                  </Text>
+                </View>
+              )}
+
               <View style={[styles.breakdownRow, styles.totalRow]}>
                 <Text style={styles.totalLabel}>Estimated Total</Text>
                 <Text style={styles.totalVal}>${finalTotal.toFixed(2)} CAD</Text>
               </View>
             </View>
 
+            {/* Cannabis Exceeded Warning Banner */}
+            {isCannabisLimitExceeded && (
+              <View style={styles.cannabisWarningBanner}>
+                <AlertTriangle size={16} color="#DC2626" />
+                <Text style={styles.cannabisWarningText}>
+                  Cart exceeds {MAX_CANNABIS_GRAMS.toFixed(1)}g limit by{' '}
+                  {excessCannabis.toFixed(1)}g. Please reduce items to checkout.
+                </Text>
+              </View>
+            )}
+
             {/* Checkout Action Button */}
             <TouchableOpacity
-              style={styles.checkoutBtn}
+              style={[
+                styles.checkoutBtn,
+                isCannabisLimitExceeded && styles.checkoutBtnDisabled,
+              ]}
               onPress={handleCheckout}
-              activeOpacity={0.85}>
-              <Text style={styles.checkoutBtnText}>
-                PROCEED TO SECURE CHECKOUT
+              activeOpacity={isCannabisLimitExceeded ? 1 : 0.85}>
+              <Text
+                style={[
+                  styles.checkoutBtnText,
+                  isCannabisLimitExceeded && styles.checkoutBtnTextDisabled,
+                ]}>
+                {isCannabisLimitExceeded
+                  ? `EXCEEDS ${MAX_CANNABIS_GRAMS.toFixed(1)}G LIMIT (${cartCannabisGrams.toFixed(1)}G)`
+                  : 'PROCEED TO SECURE CHECKOUT'}
               </Text>
-              <ArrowRight size={17} color="#0F172A" strokeWidth={2.4} />
+              {!isCannabisLimitExceeded && (
+                <ArrowRight size={17} color="#0F172A" strokeWidth={2.4} />
+              )}
             </TouchableOpacity>
 
             {/* Compliance Footer */}
             <View style={styles.complianceRow}>
-              <ShieldCheck size={14} color="#488203" />
+              <ShieldCheck size={14} color="#0166dc" />
               <Text style={styles.complianceText}>
                 19+ Age Verification at Fulfillment • Manitoba Compliant
               </Text>
@@ -356,12 +492,11 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
 };
 
 const BG = '#F8FAFC';
-const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT = '#8EF705';
-const ACCENT_DEEP = '#488203';
+const ACCENT = '#3B82F6';
+const ACCENT_DEEP = '#0166dc';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -387,9 +522,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(142, 247, 5, 0.25)',
+    backgroundColor: 'rgba(59, 130, 246, 0.25)',
     borderWidth: 1,
-    borderColor: 'rgba(142, 247, 5, 0.5)',
+    borderColor: 'rgba(59, 130, 246, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -456,6 +591,14 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontFamily: 'monospace',
   },
+  progressPercentTextExceeded: {
+    color: '#DC2626',
+    fontWeight: '800',
+  },
+  progressPercentTextWarning: {
+    color: '#EA580C',
+    fontWeight: '800',
+  },
   progressBarTrack: {
     width: '100%',
     height: 6,
@@ -463,10 +606,40 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     overflow: 'hidden',
   },
+  progressBarTrackExceeded: {
+    backgroundColor: '#FEE2E2',
+  },
   progressBarFill: {
     height: '100%',
     backgroundColor: ACCENT_DEEP,
     borderRadius: 3,
+  },
+
+  // Cannabis Legal Limit Progress Styles
+  cannabisProgressRow: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#CBD5E1',
+  },
+  cannabisLimitExceeded: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  cannabisLimitReached: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: ACCENT_DEEP,
+  },
+  cannabisBarFillNormal: {
+    backgroundColor: ACCENT_DEEP,
+  },
+  cannabisBarFillWarning: {
+    backgroundColor: '#EA580C',
+  },
+  cannabisBarFillExceeded: {
+    backgroundColor: '#DC2626',
   },
 
   // Scroll
@@ -583,7 +756,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   itemBrandLine: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '800',
     color: ACCENT_DEEP,
     marginTop: 2,
@@ -709,6 +882,24 @@ const styles = StyleSheet.create({
     color: ACCENT_DEEP,
     fontFamily: 'monospace',
   },
+  cannabisWeightRow: {
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  cannabisWeightLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cannabisWeightVal: {
+    fontWeight: '800',
+    color: TEXT,
+  },
+  cannabisWeightValExceeded: {
+    color: '#DC2626',
+    fontWeight: '900',
+  },
   totalRow: {
     paddingTop: 8,
     borderTopWidth: 1,
@@ -726,6 +917,23 @@ const styles = StyleSheet.create({
     color: ACCENT_DEEP,
     fontFamily: 'monospace',
   },
+  cannabisWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: 10,
+    borderRadius: 12,
+  },
+  cannabisWarningText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#B91C1C',
+    fontWeight: '600',
+    lineHeight: 16,
+  },
   checkoutBtn: {
     height: 48,
     backgroundColor: ACCENT,
@@ -740,11 +948,19 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
+  checkoutBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   checkoutBtnText: {
     fontSize: 12,
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: 0.8,
+  },
+  checkoutBtnTextDisabled: {
+    color: '#94A3B8',
   },
   complianceRow: {
     flexDirection: 'row',

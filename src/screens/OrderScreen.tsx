@@ -44,8 +44,8 @@ const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT_LIME = '#8EF705';
-const ACCENT_GREEN = '#488203';
+const ACCENT_LIME = '#3B82F6';
+const ACCENT_GREEN = '#0166dc';
 
 const formatMoney = (val: any): string => {
   const num = typeof val === 'number' ? val : parseFloat(val || '0');
@@ -636,9 +636,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
     borderWidth: 1.5,
-    borderColor: 'rgba(72, 130, 3, 0.28)',
+    borderColor: 'rgba(1, 102, 220, 0.28)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -1124,7 +1124,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 9,
-    backgroundColor: 'rgba(142, 247, 5, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },

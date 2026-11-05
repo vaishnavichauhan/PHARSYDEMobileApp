@@ -283,7 +283,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
           ]}>
           <IconComponent
             size={20}
-            color={isSelected ? '#488203' : '#64748B'}
+            color={isSelected ? '#0166dc' : '#64748B'}
             strokeWidth={isSelected ? 2.3 : 1.8}
           />
         </View>
@@ -414,7 +414,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <SlidersHorizontal
               size={18}
-              color={isSidebarOpen ? '#488203' : '#0F172A'}
+              color={isSidebarOpen ? '#0166dc' : '#0F172A'}
               strokeWidth={2}
             />
           </TouchableOpacity> */}
@@ -426,7 +426,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Search
               size={20}
-              color={showSearch ? '#488203' : '#0F172A'}
+              color={showSearch ? '#0166dc' : '#0F172A'}
               strokeWidth={2}
             />
           </TouchableOpacity>
@@ -502,14 +502,14 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
               style={styles.categoryToggleBtn}
               onPress={() => setIsSidebarOpen(prev => !prev)}
               activeOpacity={0.75}>
-              <SlidersHorizontal size={13} color="#488203" strokeWidth={2.2} />
+              <SlidersHorizontal size={13} color="#0166dc" strokeWidth={2.2} />
               <Text style={styles.categoryToggleBtnText}>
                 {isSidebarOpen ? 'Hide' : 'Categories'}
               </Text>
               {isSidebarOpen ? (
-                <ChevronLeft size={14} color="#488203" strokeWidth={2.2} />
+                <ChevronLeft size={14} color="#0166dc" strokeWidth={2.2} />
               ) : (
-                <ChevronRight size={14} color="#488203" strokeWidth={2.2} />
+                <ChevronRight size={14} color="#0166dc" strokeWidth={2.2} />
               )}
             </TouchableOpacity>
           </View>
@@ -517,7 +517,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
           {/* Product Grid / Loading / Empty */}
           {isLoading && products.length === 0 ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#488203" />
+              <ActivityIndicator size="large" color="#0166dc" />
             </View>
           ) : (
             <FlatList
@@ -560,8 +560,8 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
 const BG = '#F8FAFC';
 const SIDEBAR_BG = '#F1F5F9';
 const CARD_BG = '#FFFFFF';
-const ACCENT = '#8EF705';
-const ACCENT_DEEP = '#488203';
+const ACCENT = '#3B82F6';
+const ACCENT_DEEP = '#0166dc';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
   },
   iconButtonActive: {
     borderColor: ACCENT_DEEP,
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
   },
   cartBadge: {
     position: 'absolute',
@@ -715,8 +715,8 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   categoryIconCircleActive: {
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
-    borderColor: 'rgba(72, 130, 3, 0.3)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+    borderColor: 'rgba(1, 102, 220, 0.3)',
   },
   categoryLabel: {
     fontSize: 11,
@@ -753,9 +753,9 @@ const styles = StyleSheet.create({
   categoryToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(142, 247, 5, 0.15)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.25)',
+    borderColor: 'rgba(1, 102, 220, 0.25)',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 20,
@@ -858,12 +858,12 @@ const styles = StyleSheet.create({
     color: '#7E22CE',
   },
   hybridBadge: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
     borderWidth: 1,
   },
   hybridText: {
-    color: '#047857',
+    color: '#1D4ED8',
   },
 
   /* Card Details */
@@ -911,7 +911,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBtnSuccess: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#2563EB',
   },
 
   /* States */
@@ -948,7 +948,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(142, 247, 5, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
   },
   clearSearchText: {
     fontSize: 11,

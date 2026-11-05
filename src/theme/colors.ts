@@ -12,8 +12,8 @@ export const THEME = {
   textMuted: '#64748B',     // --text-muted (slate-500)
   textSubtle: '#94A3B8',    // slate-400
   
-  accent: '#8EF705',        // neon lime brand accent
-  accentGreen: '#488203',   // accessible deep green for text & borders on light bg
+  accent: '#3B82F6',        // neon lime brand accent
+  accentGreen: '#0166dc',   // accessible deep green for text & borders on light bg
   accentCoral: '#EA580C',   // orange badge
   
   // Strains
@@ -25,9 +25,9 @@ export const THEME = {
   sativaText: '#B45309',
   sativaBorder: '#FDE68A',
 
-  hybridBg: '#ECFDF5',
-  hybridText: '#047857',
-  hybridBorder: '#A7F3D0',
+  hybridBg: '#EFF6FF',
+  hybridText: '#1D4ED8',
+  hybridBorder: '#BFDBFE',
 };
 
 export default THEME;

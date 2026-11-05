@@ -1,42 +1,56 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   House,
-  ChartColumn,
   PackageCheck,
   LayoutGridCircles,
+  Cigarette,
+  Cannabis,
 } from 'lucide-react-native';
 
 import HomeScreen from '../screens/HomeScreen';
-import CategoriesScreen from '../screens/CategoriesScreen';
+import CannabisScreen from '../screens/CannabisScreen';
+import NicotineScreen from '../screens/NicotineScreen';
 import OrderScreen from '../screens/OrderScreen';
 import MenuScreen from '../screens/MenuScreen';
 
 const Tab = createBottomTabNavigator();
 
-const ACTIVE_COLOR = '#488203';
+const ACTIVE_COLOR = '#0166dc';
 const CARD_BG = '#FFFFFF';
 const MUTED = '#64748B';
 
-/** Renders a tab icon with lucide-react icon + label */
+/** Renders a tab icon with lucide-react icon or custom image + label */
 function TabIcon({
   Icon,
+  imageSource,
   label,
   focused,
 }: {
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  Icon?: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  imageSource?: any;
   label: string;
   focused: boolean;
 }) {
   return (
     <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
-      <Icon
-        size={22}
-        color={focused ? ACTIVE_COLOR : MUTED}
-        strokeWidth={focused ? 2.4 : 1.8}
-      />
+      {imageSource ? (
+        <View style={[styles.tabImageWrapper, focused && styles.tabImageWrapperActive]}>
+          <Image
+            source={imageSource}
+            style={styles.tabImage}
+            resizeMode="cover"
+          />
+        </View>
+      ) : Icon ? (
+        <Icon
+          size={20}
+          color={focused ? ACTIVE_COLOR : MUTED}
+          strokeWidth={focused ? 2.4 : 1.8}
+        />
+      ) : null}
       <Text style={[styles.label, focused && styles.labelActive]} numberOfLines={1}>
         {label}
       </Text>
@@ -72,11 +86,30 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Categories"
-        component={CategoriesScreen}
+        name="Cannabis"
+        component={CannabisScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={ChartColumn} label="Categories" focused={focused} />
+            <TabIcon
+            Icon={Cannabis}
+              // imageSource={require('../assets/Images/Nicotine.png')}
+              label="Cannabis"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Nicotine"
+        component={NicotineScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+            Icon={Cigarette}
+              // imageSource={require('../assets/Images/cannabis.png')}
+              label="Nicotine"
+              focused={focused}
+            />
           ),
         }}
       />
@@ -96,6 +129,16 @@ const BottomTabNavigator = () => {
           tabBarIcon: ({ focused }) => (
             <TabIcon Icon={LayoutGridCircles} label="Menu" focused={focused} />
           ),
+        }}
+      />
+
+      {/* Legacy Categories route fallback (hidden from tab bar) */}
+      <Tab.Screen
+        name="Categories"
+        component={CannabisScreen}
+        options={{
+          tabBarItemStyle: { display: 'none' },
+          tabBarButton: () => null,
         }}
       />
     </Tab.Navigator>
@@ -119,24 +162,44 @@ const styles = StyleSheet.create({
   iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderRadius: 14,
-    width: 74,
+    paddingVertical: 3,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    minWidth: 56,
+    maxWidth: 68,
   },
   iconWrapperActive: {
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+  },
+  tabImageWrapper: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.4,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabImageWrapperActive: {
+    borderColor: ACTIVE_COLOR,
+    backgroundColor: '#DBEAFE',
+  },
+  tabImage: {
+    width: '100%',
+    height: '100%',
   },
   label: {
-    fontSize: 9.5,
+    fontSize: 9,
     color: MUTED,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
     textAlign: 'center',
   },
   labelActive: {
     color: ACTIVE_COLOR,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
 

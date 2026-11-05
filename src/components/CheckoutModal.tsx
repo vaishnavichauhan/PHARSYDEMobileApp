@@ -37,6 +37,7 @@ import {
   StatusBar,
   Alert,
   Linking,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -60,6 +61,8 @@ import {
   User,
   FileCheck,
   UploadCloud,
+  Image as ImageIcon,
+  FileText,
 } from 'lucide-react-native';
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 
@@ -74,13 +77,22 @@ const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT_LIME = '#8EF705';
-const ACCENT_GREEN = '#488203';
+const ACCENT_LIME = '#3B82F6';
+const ACCENT_GREEN = '#0166dc';
 const ERROR_RED = '#DC2626';
 
 const formatMoney = (val: any): string => {
   const num = typeof val === 'number' ? val : parseFloat(val || '0');
   return Number.isFinite(num) ? num.toFixed(2) : '0.00';
+};
+
+const isImageDoc = (url?: string | null, name?: string | null): boolean => {
+  const target = (name || url || '').toLowerCase();
+  if (!target) return false;
+  if (target.endsWith('.pdf') || target.includes('application/pdf')) {
+    return false;
+  }
+  return true;
 };
 
 export default function CheckoutModal() {
@@ -121,6 +133,8 @@ export default function CheckoutModal() {
   // Government ID Attachment State (Optional - Matches Web CheckoutPage.jsx)
   const [isUploadingId, setIsUploadingId] = useState(false);
   const [idUploadError, setIdUploadError] = useState<string | null>(null);
+  const [localDocUri, setLocalDocUri] = useState<string | null>(null);
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
   const handlePickDocument = async () => {
     setIdUploadError(null);
@@ -141,6 +155,11 @@ export default function CheckoutModal() {
           'The selected document exceeds the 10MB limit. Please choose a smaller file.',
         );
         return;
+      }
+
+      // Store local URI immediately for instant, high-resolution preview
+      if (result.uri) {
+        setLocalDocUri(result.uri);
       }
 
       setIsUploadingId(true);
@@ -185,6 +204,8 @@ export default function CheckoutModal() {
   };
 
   const handleRemoveDocument = () => {
+    setLocalDocUri(null);
+    setIsImageViewerOpen(false);
     updateFormField('govIdUrl', null);
     updateFormField('govIdName', null);
     updateFormField('govIdSize', null);
@@ -436,7 +457,8 @@ export default function CheckoutModal() {
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       visible={isOpen}
       animationType="slide"
       onRequestClose={() => {
@@ -743,11 +765,69 @@ export default function CheckoutModal() {
                         <Text style={styles.govIdErrorText}>{idUploadError}</Text>
                       ) : null}
                     </View>
+                  ) : isImageDoc(formData.govIdUrl, formData.govIdName) ? (
+                    /* Image uploaded: show small image thumbnail with small image icon inside image and right corner close icon */
+                    <View style={styles.imagePreviewContainer}>
+                      <View style={styles.thumbnailWrapper}>
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onPress={() => setIsImageViewerOpen(true)}
+                          style={styles.thumbnailTouch}>
+                          <Image
+                            source={{ uri: localDocUri || formData.govIdUrl || '' }}
+                            style={styles.smallImageThumbnail}
+                            resizeMode="cover"
+                          />
+                          {/* Small image icon inside image */}
+                          <View style={styles.smallImageIconBadge}>
+                            <ImageIcon size={12} color="#FFFFFF" strokeWidth={2.4} />
+                          </View>
+                        </TouchableOpacity>
+
+                        {/* Right corner close icon */}
+                        <TouchableOpacity
+                          style={styles.thumbnailCloseBtn}
+                          onPress={handleRemoveDocument}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          activeOpacity={0.8}
+                          accessibilityLabel="Remove image">
+                          <X size={12} color="#FFFFFF" strokeWidth={2.6} />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.imageDocMetaCol}>
+                        <View style={styles.imageDocStatusRow}>
+                          <CheckCircle2 size={14} color="#059669" />
+                          <Text style={styles.imageDocStatusText}>ID Uploaded</Text>
+                        </View>
+                        <Text style={styles.uploadedDocName} numberOfLines={1}>
+                          {formData.govIdName || 'Government ID Photo'}
+                        </Text>
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => setIsImageViewerOpen(true)}>
+                          <Text style={styles.tapToViewText}>
+                            Tap image to view full screen
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Right corner close icon */}
+                      <TouchableOpacity
+                        style={styles.removeDocBtn}
+                        onPress={handleRemoveDocument}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        activeOpacity={0.75}
+                        accessibilityLabel="Delete uploaded ID">
+                        <X size={16} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
                   ) : (
+                    /* Non-image (e.g. PDF) document card */
                     <View style={styles.uploadedDocCard}>
                       <View style={styles.uploadedDocLeft}>
                         <View style={styles.uploadedDocIconWrap}>
-                          <CheckCircle2 size={18} color="#059669" />
+                          <FileText size={18} color="#059669" />
                         </View>
                         <View style={styles.uploadedDocInfo}>
                           <Text style={styles.uploadedDocName} numberOfLines={1}>
@@ -802,27 +882,27 @@ export default function CheckoutModal() {
                     ]}
                     onPress={() => updateFormField('fulfillmentType', 'pickup')}
                     activeOpacity={0.85}>
-                    <View style={styles.radioRow}>
-                      <View
-                        style={[
-                          styles.radioCircle,
-                          formData.fulfillmentType === 'pickup' && styles.radioCircleActive,
-                        ]}>
-                        {formData.fulfillmentType === 'pickup' && (
-                          <View style={styles.radioDot} />
-                        )}
-                      </View>
-                      <View style={styles.fulfillmentTextCol}>
+                    <View style={styles.fulfillmentTopRow}>
+                      <View style={styles.fulfillmentLeftCol}>
                         <View style={styles.fulfillmentLabelRow}>
-                          <Store size={18} color="#488203" />
+                          <Store size={18} color="#0166dc" />
                           <Text style={styles.fulfillmentLabel}>In-Store Boutique Pickup</Text>
-                          <View style={styles.freeBadge}>
-                            <Text style={styles.freeBadgeText}>FREE</Text>
-                          </View>
                         </View>
                         <Text style={styles.fulfillmentSubtext}>
-                          117 Regent Ave W, Winnipeg • Ready in 30 mins
+                          117 Regent Ave W, Winnipeg
                         </Text>
+                        <Text style={styles.fulfillmentHighlightGreen}>
+                          FREE • Ready in 30 mins
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.paymentRadioOuter,
+                          formData.fulfillmentType === 'pickup' && styles.paymentRadioOuterActive,
+                        ]}>
+                        {formData.fulfillmentType === 'pickup' && (
+                          <View style={styles.paymentRadioInnerActive} />
+                        )}
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -835,27 +915,27 @@ export default function CheckoutModal() {
                     ]}
                     onPress={() => updateFormField('fulfillmentType', 'delivery')}
                     activeOpacity={0.85}>
-                    <View style={styles.radioRow}>
-                      <View
-                        style={[
-                          styles.radioCircle,
-                          formData.fulfillmentType === 'delivery' && styles.radioCircleActive,
-                        ]}>
-                        {formData.fulfillmentType === 'delivery' && (
-                          <View style={styles.radioDot} />
-                        )}
-                      </View>
-                      <View style={styles.fulfillmentTextCol}>
+                    <View style={styles.fulfillmentTopRow}>
+                      <View style={styles.fulfillmentLeftCol}>
                         <View style={styles.fulfillmentLabelRow}>
                           <Truck size={18} color="#EA580C" />
                           <Text style={styles.fulfillmentLabel}>Winnipeg Local Courier</Text>
-                          <Text style={styles.courierPriceText}>
-                            {cartSubtotal >= FREE_SHIPPING_THRESHOLD ? 'FREE (Over $75)' : '$9.99 CAD'}
-                          </Text>
                         </View>
                         <Text style={styles.fulfillmentSubtext}>
                           Same-day delivery (19+ ID check)
                         </Text>
+                        <Text style={styles.fulfillmentHighlightOrange}>
+                          {cartSubtotal >= FREE_SHIPPING_THRESHOLD ? 'FREE (Over $75)' : '$9.99 CAD'}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.paymentRadioOuter,
+                          formData.fulfillmentType === 'delivery' && styles.paymentRadioOuterActive,
+                        ]}>
+                        {formData.fulfillmentType === 'delivery' && (
+                          <View style={styles.paymentRadioInnerActive} />
+                        )}
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -962,7 +1042,7 @@ export default function CheckoutModal() {
                     onPress={() => updateFormField('paymentMethod', 'interac')}
                     activeOpacity={0.8}>
                     <View style={styles.paymentOptionLeft}>
-                      <Building size={20} color="#488203" />
+                      <Building size={20} color="#0166dc" />
                       <View style={styles.paymentOptionInfo}>
                         <Text style={styles.paymentOptionName}>
                           Interac e-Transfer
@@ -1487,6 +1567,43 @@ export default function CheckoutModal() {
         </ScrollView>
       </SafeAreaView>
     </Modal>
+
+    {/* Full-Screen Big Image Preview Modal (Big image only and close icon) */}
+    <Modal
+      visible={isImageViewerOpen}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setIsImageViewerOpen(false)}
+      statusBarTranslucent={true}>
+      <View style={styles.bigImageModalOverlay}>
+        <SafeAreaView style={styles.bigImageSafeArea} edges={['top', 'bottom', 'left', 'right']}>
+          {/* Top Right Close Icon */}
+          <View style={styles.bigImageHeader}>
+            <TouchableOpacity
+              style={styles.bigImageCloseBtn}
+              onPress={() => setIsImageViewerOpen(false)}
+              activeOpacity={0.8}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              accessibilityLabel="Close big image preview">
+              <X size={26} color="#FFFFFF" strokeWidth={2.4} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Big Image Only */}
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.bigImageContainer}
+            onPress={() => setIsImageViewerOpen(false)}>
+            <Image
+              source={{ uri: localDocUri || formData.govIdUrl || '' }}
+              style={styles.bigImageOnly}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </SafeAreaView>
+      </View>
+    </Modal>
+  </>
   );
 }
 
@@ -1527,9 +1644,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#BFDBFE',
   },
   securityPillText: {
     fontSize: 10,
@@ -1624,7 +1741,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(142, 247, 5, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1714,67 +1831,44 @@ const styles = StyleSheet.create({
   },
   fulfillmentOptionActive: {
     borderColor: ACCENT_GREEN,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#EFF6FF',
   },
-  radioRow: {
+  fulfillmentTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  radioCircleActive: {
-    borderColor: ACCENT_GREEN,
-  },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: ACCENT_GREEN,
-  },
-  fulfillmentTextCol: {
+  fulfillmentLeftCol: {
     flex: 1,
     gap: 4,
   },
   fulfillmentLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   fulfillmentLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: TEXT,
-    textTransform: 'uppercase',
-  },
-  freeBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  freeBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#15803D',
-  },
-  courierPriceText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: ACCENT_GREEN,
   },
   fulfillmentSubtext: {
     fontSize: 11,
     color: MUTED,
     lineHeight: 15,
+  },
+  fulfillmentHighlightGreen: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginTop: 2,
+  },
+  fulfillmentHighlightOrange: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#EA580C',
+    marginTop: 2,
   },
   inputGroup: {
     gap: 6,
@@ -1919,15 +2013,137 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
+
+  // Image Preview & Thumbnail Styles (Gov ID)
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 16,
+    padding: 12,
+    gap: 12,
+  },
+  thumbnailWrapper: {
+    position: 'relative',
+    paddingTop: 6,
+    paddingRight: 6,
+  },
+  thumbnailTouch: {
+    width: 76,
+    height: 76,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+  },
+  smallImageThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  smallImageIconBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    borderRadius: 6,
+    padding: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailCloseBtn: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 6,
+    zIndex: 20,
+  },
+  imageDocMetaCol: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 3,
+  },
+  imageDocStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  imageDocStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  tapToViewText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    marginTop: 2,
+  },
+
+  // Big Image Viewer Modal (Big image only and close icon)
+  bigImageModalOverlay: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  bigImageSafeArea: {
+    flex: 1,
+  },
+  bigImageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    zIndex: 20,
+  },
+  bigImageCloseBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  bigImageContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 24,
+  },
+  bigImageOnly: {
+    width: '100%',
+    height: '100%',
+  },
+
   uploadedDocCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 12,
     borderRadius: 14,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#BFDBFE',
     gap: 10,
   },
   uploadedDocLeft: {
@@ -1954,7 +2170,7 @@ const styles = StyleSheet.create({
   },
   uploadedDocMeta: {
     fontSize: 10,
-    color: '#047857',
+    color: '#1D4ED8',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -1969,7 +2185,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#BFDBFE',
   },
   previewDocBtnText: {
     fontSize: 11,
@@ -1999,7 +2215,7 @@ const styles = StyleSheet.create({
   },
   paymentOptionCardActive: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#8EF705',
+    borderColor: '#3B82F6',
     borderWidth: 1.5,
   },
   paymentOptionLeft: {
@@ -2033,13 +2249,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   paymentRadioOuterActive: {
-    borderColor: '#488203',
+    borderColor: '#0166dc',
   },
   paymentRadioInnerActive: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#488203',
+    backgroundColor: '#0166dc',
   },
   monerisHostedNotice: {
     marginTop: 4,
@@ -2062,7 +2278,7 @@ const styles = StyleSheet.create({
   },
   monerisHostedNoticeText: {
     fontSize: 11,
-    color: '#047857',
+    color: '#1D4ED8',
     lineHeight: 16,
   },
   checkboxRow: {
@@ -2250,12 +2466,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#BFDBFE',
   },
   sandboxPillText: {
     fontSize: 10,
@@ -2292,7 +2508,7 @@ const styles = StyleSheet.create({
   },
   testCardBoxActive: {
     borderColor: ACCENT_GREEN,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#EFF6FF',
   },
   testCardTitleRow: {
     flexDirection: 'row',
@@ -2308,8 +2524,8 @@ const styles = StyleSheet.create({
   testCardApproved: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#15803D',
-    backgroundColor: '#DCFCE7',
+    color: '#1D4ED8',
+    backgroundColor: '#DBEAFE',
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
@@ -2384,9 +2600,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#DBEAFE',
     borderWidth: 1.5,
-    borderColor: '#86EFAC',
+    borderColor: '#93C5FD',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2463,9 +2679,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#BFDBFE',
     borderRadius: 12,
     padding: 10,
   },
@@ -2580,8 +2796,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxSquareChecked: {
-    backgroundColor: '#8EF705',
-    borderColor: '#488203',
+    backgroundColor: '#3B82F6',
+    borderColor: '#0166dc',
   },
   rewardRedeemTextCol: {
     flex: 1,
@@ -2594,7 +2810,7 @@ const styles = StyleSheet.create({
   rewardRedeemSub: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#488203',
+    color: '#0166dc',
     marginTop: 2,
   },
   rewardNoticeBox: {
@@ -2651,7 +2867,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   rewardDiscountActive: {
-    color: '#488203',
+    color: '#0166dc',
     fontWeight: '800',
   },
   rewardDiscountZero: {

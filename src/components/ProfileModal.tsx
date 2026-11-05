@@ -42,8 +42,8 @@ const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT_LIME = '#8EF705';
-const ACCENT_GREEN = '#488203';
+const ACCENT_LIME = '#3B82F6';
+const ACCENT_GREEN = '#0166dc';
 const ERROR_BG = '#FEF2F2';
 const ERROR_BORDER = '#FECACA';
 const ERROR_TEXT = '#B91C1C';
@@ -1100,9 +1100,9 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 7,
-    backgroundColor: 'rgba(142, 247, 5, 0.22)',
+    backgroundColor: 'rgba(59, 130, 246, 0.22)',
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.25)',
+    borderColor: 'rgba(1, 102, 220, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1209,12 +1209,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(142, 247, 5, 0.12)',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.22)',
+    borderColor: 'rgba(1, 102, 220, 0.22)',
   },
   quickFillText: {
     fontSize: 11,
@@ -1272,7 +1272,7 @@ const styles = StyleSheet.create({
   },
   dobButtonWrapperFilled: {
     borderColor: ACCENT_GREEN,
-    backgroundColor: 'rgba(142, 247, 5, 0.05)',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
   },
   dobValueText: {
     flex: 1,
@@ -1383,12 +1383,12 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: 'rgba(142, 247, 5, 0.20)',
+    backgroundColor: 'rgba(59, 130, 246, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: 'rgba(72, 130, 3, 0.30)',
+    borderColor: 'rgba(1, 102, 220, 0.30)',
   },
   avatarInnerCircle: {
     width: 74,
@@ -1431,12 +1431,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(142, 247, 5, 0.16)',
+    backgroundColor: 'rgba(59, 130, 246, 0.16)',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.25)',
+    borderColor: 'rgba(1, 102, 220, 0.25)',
   },
   memberStatusText: {
     fontSize: 10.5,
@@ -1643,9 +1643,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.22)',
+    borderColor: 'rgba(1, 102, 220, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1730,9 +1730,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(142, 247, 5, 0.20)',
+    backgroundColor: 'rgba(59, 130, 246, 0.20)',
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.25)',
+    borderColor: 'rgba(1, 102, 220, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1778,7 +1778,7 @@ const styles = StyleSheet.create({
     color: MUTED,
   },
   formatPill: {
-    backgroundColor: 'rgba(72, 130, 3, 0.12)',
+    backgroundColor: 'rgba(1, 102, 220, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1804,7 +1804,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(142, 247, 5, 0.22)',
+    backgroundColor: 'rgba(59, 130, 246, 0.22)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,

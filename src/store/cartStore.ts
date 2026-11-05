@@ -5,7 +5,13 @@
  */
 
 import { create } from 'zustand';
+import { Alert } from 'react-native';
 import { Product } from './productStore';
+import {
+  MAX_CANNABIS_GRAMS,
+  calculateCartCannabisGrams,
+  getProductCannabisGrams,
+} from '../utils/cannabisLimit';
 
 export interface CartItem {
   product: Product;
@@ -20,6 +26,8 @@ interface CartState {
   items: Record<string, CartItem>;
   totalCount: number;
   totalPrice: number;
+  totalCannabisGrams: number;
+  isCannabisLimitExceeded: boolean;
 
   // Drawer / Screen state
   isCartOpen: boolean;
@@ -45,18 +53,29 @@ interface CartState {
 const computeTotals = (items: Record<string, CartItem>) => {
   let count = 0;
   let price = 0;
-  Object.values(items).forEach(item => {
+  const itemsList = Object.values(items);
+  itemsList.forEach(item => {
     count += item.quantity;
     const p = parseFloat(item.product.retail_price || '0');
     price += p * item.quantity;
   });
-  return { totalCount: count, totalPrice: price };
+  const totalCannabisGrams = calculateCartCannabisGrams(itemsList);
+  const isCannabisLimitExceeded = totalCannabisGrams > MAX_CANNABIS_GRAMS;
+
+  return {
+    totalCount: count,
+    totalPrice: price,
+    totalCannabisGrams,
+    isCannabisLimitExceeded,
+  };
 };
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: {},
   totalCount: 0,
   totalPrice: 0,
+  totalCannabisGrams: 0,
+  isCannabisLimitExceeded: false,
 
   isCartOpen: false,
   openCart: () => set({ isCartOpen: true }),
@@ -100,6 +119,21 @@ export const useCartStore = create<CartState>((set, get) => ({
     const id = product.pk || product.sku;
     if (!id) return;
 
+    // Validate 30.0g legal limit
+    const itemGrams = getProductCannabisGrams(product);
+    if (itemGrams > 0) {
+      const currentGrams = get().totalCannabisGrams;
+      const proposedGrams = currentGrams + itemGrams * quantity;
+      if (proposedGrams > MAX_CANNABIS_GRAMS) {
+        Alert.alert(
+          'Cannabis Purchase Limit',
+          `Under Manitoba regulations, you cannot purchase more than ${MAX_CANNABIS_GRAMS.toFixed(1)}g of cannabis per transaction.\n\nCurrent cart: ${currentGrams.toFixed(1)}g\nAttempting to add: ${(itemGrams * quantity).toFixed(1)}g\nTotal would be: ${proposedGrams.toFixed(1)}g`,
+          [{ text: 'OK' }],
+        );
+        return;
+      }
+    }
+
     set(state => {
       const existing = state.items[id];
       const newQty = existing ? existing.quantity + quantity : quantity;
@@ -135,17 +169,33 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateQuantity: (productId: string, quantity: number) => {
-    set(state => {
-      if (quantity <= 0) {
-        const nextItems = { ...state.items };
-        delete nextItems[productId];
-        const totals = computeTotals(nextItems);
-        const discount = state.promoApplied ? totals.totalPrice * 0.1 : 0;
-        return { items: nextItems, promoDiscount: discount, ...totals };
-      }
-      const existing = state.items[productId];
-      if (!existing) return state;
+    if (quantity <= 0) {
+      get().removeFromCart(productId);
+      return;
+    }
 
+    const existing = get().items[productId];
+    if (!existing) return;
+
+    // Validate 30.0g legal limit when increasing
+    if (quantity > existing.quantity) {
+      const diff = quantity - existing.quantity;
+      const itemGrams = getProductCannabisGrams(existing.product);
+      if (itemGrams > 0) {
+        const currentGrams = get().totalCannabisGrams;
+        const proposedGrams = currentGrams + itemGrams * diff;
+        if (proposedGrams > MAX_CANNABIS_GRAMS) {
+          Alert.alert(
+            'Cannabis Purchase Limit',
+            `Cannot increase quantity: Exceeds ${MAX_CANNABIS_GRAMS.toFixed(1)}g legal cannabis limit per transaction.\n\nCurrent cart: ${currentGrams.toFixed(1)}g\nProposed total: ${proposedGrams.toFixed(1)}g`,
+            [{ text: 'OK' }],
+          );
+          return;
+        }
+      }
+    }
+
+    set(state => {
       const nextItems = {
         ...state.items,
         [productId]: {
@@ -169,6 +219,8 @@ export const useCartStore = create<CartState>((set, get) => ({
       items: {},
       totalCount: 0,
       totalPrice: 0,
+      totalCannabisGrams: 0,
+      isCannabisLimitExceeded: false,
       promoCode: '',
       promoDiscount: 0,
       promoApplied: false,

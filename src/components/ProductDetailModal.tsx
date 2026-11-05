@@ -273,7 +273,7 @@ const ProductDetailModal = () => {
 
           {/* ── Compliance Badge ─────────────────────────────────────── */}
           <View style={styles.complianceCard}>
-            <ShieldCheck size={18} color="#488203" />
+            <ShieldCheck size={18} color="#0166dc" />
             <Text style={styles.complianceText}>
               19+ Age Verification at Fulfillment • Licensed Manitoba Retail • Lab Certified
             </Text>
@@ -322,8 +322,8 @@ const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT = '#8EF705';
-const ACCENT_DEEP = '#488203';
+const ACCENT = '#3B82F6';
+const ACCENT_DEEP = '#0166dc';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -443,12 +443,12 @@ const styles = StyleSheet.create({
     color: '#7E22CE',
   },
   hybridBadge: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
     borderWidth: 1,
   },
   hybridText: {
-    color: '#047857',
+    color: '#1D4ED8',
   },
   categoryPill: {
     position: 'absolute',
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
   thumbBtnActive: {
     borderColor: ACCENT_DEEP,
-    backgroundColor: 'rgba(142, 247, 5, 0.1)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   thumbImage: {
     width: '100%',
@@ -656,9 +656,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDBFE',
     padding: 12,
     borderRadius: 12,
     marginTop: 14,
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
   complianceText: {
     flex: 1,
     fontSize: 11,
-    color: '#166534',
+    color: '#1E40AF',
     fontWeight: '500',
     lineHeight: 16,
   },

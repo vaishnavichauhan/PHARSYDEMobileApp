@@ -124,7 +124,7 @@ const MenuScreen = () => {
         id: 'return_policy',
         title: 'Return, Exchange & Warranty Policy',
         badge: '7-DAY WARRANTY',
-        badgeColor: '#8EF705',
+        badgeColor: '#3B82F6',
         icon: RotateCcw,
         content: (
           <View style={styles.policyBody}>
@@ -215,7 +215,7 @@ const MenuScreen = () => {
         id: 'age_verification',
         title: 'Age & Identity Verification Rules',
         badge: '19+ MANDATORY',
-        badgeColor: '#8EF705',
+        badgeColor: '#3B82F6',
         icon: UserCheck,
         content: (
           <View style={styles.policyBody}>
@@ -286,7 +286,7 @@ const MenuScreen = () => {
                       ]}>
                       <Icon
                         size={20}
-                        color={isExpanded ? '#8EF705' : '#FFFFFF'}
+                        color={isExpanded ? '#3B82F6' : '#FFFFFF'}
                         strokeWidth={2}
                       />
                     </View>
@@ -313,7 +313,7 @@ const MenuScreen = () => {
 
                   <View style={styles.chevronWrap}>
                     {isExpanded ? (
-                      <ChevronUp size={20} color="#488203" />
+                      <ChevronUp size={20} color="#0166dc" />
                     ) : (
                       <ChevronDown size={20} color="#64748B" />
                     )}
@@ -329,7 +329,7 @@ const MenuScreen = () => {
 
         {/* Quick Assistance Box */}
         <View style={styles.helpBox}>
-          <HelpCircle size={28} color="#488203" style={{ marginBottom: 8 }} />
+          <HelpCircle size={28} color="#0166dc" style={{ marginBottom: 8 }} />
           <Text style={styles.helpBoxTitle}>Need Warranty Assistance?</Text>
           <Text style={styles.helpBoxSub}>
             Bring your device and receipt to our Winnipeg location or call our team for technician advice.
@@ -343,84 +343,7 @@ const MenuScreen = () => {
     );
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // SUBPAGE 2: About Us
-  // ─────────────────────────────────────────────────────────────
-  const renderAboutPage = () => {
-    return (
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.subpageScroll}
-        keyboardShouldPersistTaps="handled">
-        <View style={styles.pageHeaderBanner}>
-          <Text style={styles.pageTag}>ABOUT PHARSYDE</Text>
-          <Text style={styles.pageTitle}>More Than a Collection.{'\n'}A Way of Life.</Text>
-          <Text style={styles.pageSubtitle}>
-            Redefining the cannabis dispensary experience with craftsmanship, elevated service, and authentic Manitoba roots.
-          </Text>
-        </View>
 
-        {/* Story Section */}
-        <View style={styles.aboutCard}>
-          <View style={styles.aboutPillarHeader}>
-            <Sparkles size={20} color="#488203" />
-            <Text style={styles.aboutPillarTitle}>REDEFINING RETAIL CANNABIS</Text>
-          </View>
-          <Text style={styles.aboutBodyText}>
-            Located at 117 Regent Ave W in Winnipeg, Pharsyde was conceived as an antidote to generic, cookie-cutter cannabis shops. We view cannabis and modern vaporization not merely as commodities, but as sophisticated lifestyle rituals that deserve an equally elevated presentation.
-          </Text>
-          <Text style={styles.aboutBodyText}>
-            Every detail—from our curated craft cannabis flower to carefully vetted hardware—is chosen to inspire confidence, comfort, and appreciation for true quality.
-          </Text>
-        </View>
-
-        {/* Core Values */}
-        <View style={styles.valuesGrid}>
-          <View style={styles.valueItem}>
-            <Store size={22} color="#488203" style={{ marginBottom: 6 }} />
-            <Text style={styles.valueTitle}>Craft Selection</Text>
-            <Text style={styles.valueDesc}>
-              Hand-selected micro-cultivators and premier licensed producers with high-terpene profiles.
-            </Text>
-          </View>
-
-          <View style={styles.valueItem}>
-            <ShieldCheck size={22} color="#488203" style={{ marginBottom: 6 }} />
-            <Text style={styles.valueTitle}>Full Compliance</Text>
-            <Text style={styles.valueDesc}>
-              100% lab-tested, excise-stamped, and compliant under federal Health Canada standards.
-            </Text>
-          </View>
-
-          <View style={styles.valueItem}>
-            <Compass size={22} color="#488203" style={{ marginBottom: 6 }} />
-            <Text style={styles.valueTitle}>Winnipeg Local</Text>
-            <Text style={styles.valueDesc}>
-              Locally owned and operated in Regent Ave, proudly serving the Manitoba community.
-            </Text>
-          </View>
-
-          <View style={styles.valueItem}>
-            <Clock size={22} color="#488203" style={{ marginBottom: 6 }} />
-            <Text style={styles.valueTitle}>Open 7 Days</Text>
-            <Text style={styles.valueDesc}>
-              Extended store hours 7 days a week with convenient local delivery and pickup.
-            </Text>
-          </View>
-        </View>
-
-        {/* Location Spotlight */}
-        <View style={styles.locationCard}>
-          <MapPin size={22} color="#488203" />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.locationTitle}>{STORE_INFO.name}</Text>
-            <Text style={styles.locationSub}>{STORE_INFO.address}</Text>
-          </View>
-        </View>
-      </ScrollView>
-    );
-  };
 
   // ─────────────────────────────────────────────────────────────
   // SUBPAGE 3: Terms & Conditions
@@ -491,12 +414,12 @@ const MenuScreen = () => {
         {/* Quick Action Buttons */}
         <View style={styles.contactActionsRow}>
           <TouchableOpacity style={styles.contactActionBtn} onPress={handleCall} activeOpacity={0.8}>
-            <Phone size={18} color="#488203" />
+            <Phone size={18} color="#0166dc" />
             <Text style={styles.contactActionText}>Call Store</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.contactActionBtn} onPress={handleEmail} activeOpacity={0.8}>
-            <Mail size={18} color="#488203" />
+            <Mail size={18} color="#0166dc" />
             <Text style={styles.contactActionText}>Email Us</Text>
           </TouchableOpacity>
         </View>
@@ -504,7 +427,7 @@ const MenuScreen = () => {
         {/* Store Info Card */}
         <View style={styles.storeDetailsCard}>
           <View style={styles.infoRow}>
-            <MapPin size={20} color="#488203" style={styles.infoIcon} />
+            <MapPin size={20} color="#0166dc" style={styles.infoIcon} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoLabel}>Dispensary Address</Text>
               <Text style={styles.infoValue}>{STORE_INFO.address}</Text>
@@ -512,7 +435,7 @@ const MenuScreen = () => {
           </View>
 
           <View style={styles.infoRow}>
-            <Phone size={20} color="#488203" style={styles.infoIcon} />
+            <Phone size={20} color="#0166dc" style={styles.infoIcon} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoLabel}>Telephone</Text>
               <Text style={styles.infoValue}>{STORE_INFO.phone}</Text>
@@ -520,24 +443,11 @@ const MenuScreen = () => {
           </View>
 
           <View style={styles.infoRow}>
-            <Mail size={20} color="#488203" style={styles.infoIcon} />
+            <Mail size={20} color="#0166dc" style={styles.infoIcon} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoLabel}>Direct Email</Text>
               <Text style={styles.infoValue}>{STORE_INFO.email}</Text>
             </View>
-          </View>
-
-          <View style={styles.hoursSection}>
-            <View style={styles.hoursHeader}>
-              <Clock size={18} color="#488203" />
-              <Text style={styles.hoursTitle}>Operating Hours</Text>
-            </View>
-            {STORE_INFO.hours.map((h, i) => (
-              <View key={i} style={styles.hourItem}>
-                <Text style={styles.hourDay}>{h.days}</Text>
-                <Text style={styles.hourTime}>{h.time}</Text>
-              </View>
-            ))}
           </View>
         </View>
 
@@ -617,13 +527,6 @@ const MenuScreen = () => {
         badge: 'Official',
       },
       {
-        id: 'about',
-        title: 'About Us',
-        desc: 'Our craft dispensary story, Winnipeg location & philosophy',
-        icon: Compass,
-        page: 'about' as MenuPage,
-      },
-      {
         id: 'terms',
         title: 'Terms & Conditions',
         desc: 'Legal compliance, 19+ age restriction, courier & user agreement',
@@ -633,7 +536,7 @@ const MenuScreen = () => {
       {
         id: 'contact',
         title: 'Contact',
-        desc: 'Store hours, physical address, direct phone & inquiry form',
+        desc: 'Physical address, direct phone & inquiry form',
         icon: PhoneCall,
         page: 'contact' as MenuPage,
       },
@@ -646,78 +549,9 @@ const MenuScreen = () => {
         contentContainerStyle={styles.menuScroll}
         keyboardShouldPersistTaps="handled">
         {/* Brand Showcase Header */}
-        <View style={styles.menuBrandBanner}>
-          <View style={styles.brandTitleRow}>
-            <Text style={styles.menuBrandTitle}>PHARSYDE</Text>
-            <View style={styles.ageBadge}>
-              <Text style={styles.ageBadgeText}>19+ MB</Text>
-            </View>
-          </View>
-          <Text style={styles.menuBrandSub}>
-            Licensed Cannabis Dispensary • 117 Regent Ave W, Winnipeg
-          </Text>
-          <View style={styles.tagChipsRow}>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>Craft Cannabis</Text>
-            </View>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>Local Delivery</Text>
-            </View>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>Boutique Pickup</Text>
-            </View>
-          </View>
-        </View>
-
+      
         {/* Curated Collections: New Arrivals & Best Sellers */}
-        <View style={styles.curatedSection}>
-          <Text style={styles.curatedSectionHeader}>CURATED DROPS</Text>
-          <View style={styles.curatedCardsGrid}>
-            <TouchableOpacity
-              style={[styles.menuCuratedCard, styles.menuCuratedNew]}
-              activeOpacity={0.85}
-              onPress={() => openCuratedModal('new-arrivals')}>
-              <View style={styles.menuCuratedTop}>
-                <View style={[styles.menuCuratedIconWrap, { backgroundColor: 'rgba(142, 247, 5, 0.2)' }]}>
-                  <Sparkles size={18} color="#8EF705" />
-                </View>
-                <View style={[styles.menuCuratedBadge, { backgroundColor: 'rgba(142, 247, 5, 0.16)', borderColor: 'rgba(142, 247, 5, 0.4)' }]}>
-                  <Text style={[styles.menuCuratedBadgeText, { color: '#8EF705' }]}>NEW</Text>
-                </View>
-              </View>
-              <Text style={styles.menuCuratedTitle}>New Arrivals</Text>
-              <Text style={styles.menuCuratedSub}>
-                {newArrivals.length > 0 ? `${newArrivals.length} fresh products` : 'Fresh drops'}
-              </Text>
-              <View style={styles.menuCuratedLinkRow}>
-                <Text style={[styles.menuCuratedLinkText, { color: '#8EF705' }]}>Explore</Text>
-                <ChevronRight size={13} color="#8EF705" />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.menuCuratedCard, styles.menuCuratedBest]}
-              activeOpacity={0.85}
-              onPress={() => openCuratedModal('best-sellers')}>
-              <View style={styles.menuCuratedTop}>
-                <View style={[styles.menuCuratedIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
-                  <Crown size={18} color="#F59E0B" />
-                </View>
-                <View style={[styles.menuCuratedBadge, { backgroundColor: 'rgba(245, 158, 11, 0.16)', borderColor: 'rgba(245, 158, 11, 0.4)' }]}>
-                  <Text style={[styles.menuCuratedBadgeText, { color: '#F59E0B' }]}>HOT</Text>
-                </View>
-              </View>
-              <Text style={styles.menuCuratedTitle}>Best Sellers</Text>
-              <Text style={styles.menuCuratedSub}>
-                {bestSellers.length > 0 ? `${bestSellers.length} community picks` : 'Top shelf'}
-              </Text>
-              <View style={styles.menuCuratedLinkRow}>
-                <Text style={[styles.menuCuratedLinkText, { color: '#FBBF24' }]}>Explore</Text>
-                <ChevronRight size={13} color="#FBBF24" />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
+       
 
         <Text style={styles.menuSectionHeader}>INFORMATION & POLICIES</Text>
 
@@ -733,7 +567,7 @@ const MenuScreen = () => {
                 activeOpacity={0.75}>
                 <View style={styles.menuCardLeft}>
                   <View style={styles.menuIconContainer}>
-                    <Icon size={22} color="#488203" strokeWidth={2} />
+                    <Icon size={22} color="#0166dc" strokeWidth={2} />
                   </View>
                   <View style={styles.menuCardTextContainer}>
                     <View style={styles.titleRow}>
@@ -764,7 +598,7 @@ const MenuScreen = () => {
           <View style={styles.appVersionHeaderRow}>
             <View style={styles.appVersionHeaderLeft}>
               <View style={styles.appVersionIconWrap}>
-                <Smartphone size={20} color="#488203" strokeWidth={2.2} />
+                <Smartphone size={20} color="#0166dc" strokeWidth={2.2} />
               </View>
               <View>
                 <Text style={styles.appVersionTitle}>App Version</Text>
@@ -850,8 +684,6 @@ const MenuScreen = () => {
     switch (activePage) {
       case 'policies':
         return 'Policies & Protection';
-      case 'about':
-        return 'About Us';
       case 'terms':
         return 'Terms & Conditions';
       case 'contact':
@@ -889,7 +721,6 @@ const MenuScreen = () => {
       {/* ── Page Content ───────────────────────────────────────── */}
       {activePage === 'menu' && renderMainMenu()}
       {activePage === 'policies' && renderPoliciesPage()}
-      {activePage === 'about' && renderAboutPage()}
       {activePage === 'terms' && renderTermsPage()}
       {activePage === 'contact' && renderContactPage()}
     </SafeAreaView>
@@ -898,8 +729,8 @@ const MenuScreen = () => {
 
 const BG = '#F8FAFC';
 const CARD_BG = '#FFFFFF';
-const ACCENT = '#8EF705';
-const ACCENT_DEEP = '#488203';
+const ACCENT = '#3B82F6';
+const ACCENT_DEEP = '#0166dc';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
@@ -983,7 +814,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   ageBadge: {
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
     borderColor: ACCENT_DEEP,
     borderWidth: 1,
     paddingHorizontal: 8,
@@ -1048,12 +879,12 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.25)',
+    borderColor: 'rgba(1, 102, 220, 0.25)',
   },
   menuCardTextContainer: {
     flex: 1,
@@ -1070,7 +901,7 @@ const styles = StyleSheet.create({
     color: TEXT,
   },
   cardBadge: {
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
@@ -1188,9 +1019,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   policyIconCircleActive: {
-    backgroundColor: 'rgba(142, 247, 5, 0.18)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(72, 130, 3, 0.3)',
+    borderColor: 'rgba(1, 102, 220, 0.3)',
   },
   policyTitleWrap: {
     flex: 1,
@@ -1576,7 +1407,7 @@ const styles = StyleSheet.create({
   },
   menuCuratedNew: {
     backgroundColor: '#092612',
-    borderColor: 'rgba(142, 247, 5, 0.4)',
+    borderColor: 'rgba(59, 130, 246, 0.4)',
   },
   menuCuratedBest: {
     backgroundColor: '#261908',
@@ -1643,6 +1474,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
     gap: 12,
+    marginTop:10
   },
   appVersionHeaderRow: {
     flexDirection: 'row',
@@ -1659,7 +1491,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(142, 247, 5, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },

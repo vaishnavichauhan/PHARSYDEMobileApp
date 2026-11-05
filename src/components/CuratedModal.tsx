@@ -43,6 +43,7 @@ import { useCartStore } from '../store/cartStore';
 import { useProductDetailStore } from '../store/productDetailStore';
 import { resolveImageUrl } from '../config/api';
 import { navigate } from '../navigation/navigationRef';
+import { getProductWeightDisplay } from '../utils/cannabisLimit';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 14;
@@ -54,8 +55,8 @@ const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT_LIME = '#8EF705';
-const ACCENT_GREEN = '#488203';
+const ACCENT_LIME = '#3B82F6';
+const ACCENT_GREEN = '#0166dc';
 
 type SortOption = 'default' | 'price-low' | 'price-high' | 'name';
 
@@ -215,29 +216,7 @@ export default function CuratedModal() {
             />
 
             <View style={styles.heroContent}>
-              {/* Fresh Drops Tag */}
-              <View
-                style={[
-                  styles.heroBadge,
-                  isNewArrivals ? styles.heroBadgeNew : styles.heroBadgeBest,
-                ]}>
-                {isNewArrivals ? (
-                  <Sparkles size={13} color="#8EF705" />
-                ) : (
-                  <Crown size={13} color="#F59E0B" />
-                )}
-                <Text
-                  style={[
-                    styles.heroBadgeText,
-                    isNewArrivals
-                      ? styles.heroBadgeTextNew
-                      : styles.heroBadgeTextBest,
-                  ]}>
-                  {isNewArrivals
-                    ? 'FRESH DROPS & CURATED INVENTORY'
-                    : 'CUSTOMER FAVORITES & TOP SHELF'}
-                </Text>
-              </View>
+             
 
               {/* Title with Highlight */}
               <Text style={styles.heroTitle}>
@@ -264,20 +243,20 @@ export default function CuratedModal() {
                 {isNewArrivals ? (
                   <>
                     <View style={styles.heroStatChip}>
-                      <Flame size={12} color="#8EF705" />
+                      <Flame size={12} color="#3B82F6" />
                       <Text style={styles.heroStatText}>
                         Showing latest{' '}
-                        <Text style={styles.heroStatBold}>{products.length}</Text>{' '}
+                        {/* <Text style={styles.heroStatBold}>{products.length}</Text>{' '} */}
                         items
                       </Text>
                     </View>
-                    <View style={styles.heroStatChip}>
+                    {/* <View style={styles.heroStatChip}>
                       <Package size={12} color="#34D399" />
                       <Text style={styles.heroStatText}>
                         Default limit:{' '}
                         <Text style={styles.heroStatBold}>{newArrivalsLimit}</Text>
                       </Text>
-                    </View>
+                    </View> */}
                   </>
                 ) : (
                   <>
@@ -289,7 +268,7 @@ export default function CuratedModal() {
                       </Text>
                     </View>
                     <View style={styles.heroStatChip}>
-                      <Award size={12} color="#8EF705" />
+                      <Award size={12} color="#3B82F6" />
                       <Text style={styles.heroStatText}>Store Curated</Text>
                     </View>
                   </>
@@ -501,11 +480,23 @@ export default function CuratedModal() {
 
                     {/* Card Content */}
                     <View style={styles.cardBody}>
-                      {product.brand ? (
-                        <Text style={styles.brandText} numberOfLines={1}>
-                          {product.brand}
-                        </Text>
-                      ) : null}
+                      {/* Brand & Weight */}
+                      <View style={styles.brandRow}>
+                        {product.brand ? (
+                          <Text style={styles.brandText} numberOfLines={1}>
+                            {product.brand}
+                          </Text>
+                        ) : (
+                          <View style={{ flex: 1 }} />
+                        )}
+                        {getProductWeightDisplay(product) ? (
+                          <View style={styles.weightBadge}>
+                            <Text style={styles.weightBadgeText}>
+                              {getProductWeightDisplay(product)}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
 
                       <TouchableOpacity
                         activeOpacity={0.8}
@@ -561,10 +552,10 @@ export default function CuratedModal() {
               activeOpacity={0.85}
               onPress={() => {
                 handleClose();
-                navigate('Categories');
+                navigate('Cannabis');
               }}>
               <Text style={styles.bottomBannerBtnText}>Explore Full Catalog</Text>
-              <ArrowRight size={16} color="#8EF705" strokeWidth={2.4} />
+              <ArrowRight size={16} color="#3B82F6" strokeWidth={2.4} />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -731,7 +722,7 @@ const styles = StyleSheet.create({
     borderRadius: 90,
   },
   glowEmerald: {
-    backgroundColor: 'rgba(142, 247, 5, 0.15)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
   },
   glowAmber: {
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
@@ -751,9 +742,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroBadgeNew: {
-    backgroundColor: 'rgba(142, 247, 5, 0.15)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(142, 247, 5, 0.35)',
+    borderColor: 'rgba(59, 130, 246, 0.35)',
   },
   heroBadgeBest: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
@@ -1001,13 +992,33 @@ const styles = StyleSheet.create({
   cardBody: {
     padding: 10,
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+    gap: 4,
+  },
   brandText: {
+    flex: 1,
     fontSize: 10,
     fontWeight: '800',
     color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    marginBottom: 2,
+  },
+  weightBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  weightBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#475569',
   },
   productName: {
     fontSize: 11.5,
@@ -1126,7 +1137,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -1234,7 +1245,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sortOptionRowActive: {
-    backgroundColor: 'rgba(72, 130, 3, 0.08)',
+    backgroundColor: 'rgba(1, 102, 220, 0.08)',
   },
   sortOptionText: {
     fontSize: 13,

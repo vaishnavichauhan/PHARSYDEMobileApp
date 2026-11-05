@@ -2,7 +2,7 @@
  * AgeGateModal – Reusable Age Verification Screen
  *
  * Mirrors the web frontend AgeGateModal exactly:
- * - White card with #8EF705 green accent
+ * - White card with #3B82F6 green accent
  * - ShieldCheck icon, province picker, birth year input
  * - "I am Under 19" + "Enter Pharsyde" buttons
  * - Calls useAgeVerificationStore (Zustand + AsyncStorage + Backend API)
@@ -33,7 +33,7 @@ import {
 } from '../store/ageVerificationStore';
 
 // ── Colour tokens (match web exactly) ──────────────────────────────────────
-const GREEN = '#8EF705';
+const GREEN = '#3B82F6';
 const GREEN_DARK = '#529402';
 const GREEN_BG = 'rgba(142,247,5,0.12)';
 const GREEN_BORDER = 'rgba(142,247,5,0.45)';

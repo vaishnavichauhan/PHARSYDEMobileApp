@@ -24,8 +24,8 @@ const CARD_BG = '#FFFFFF';
 const TEXT = '#0F172A';
 const MUTED = '#64748B';
 const BORDER = '#E2E8F0';
-const ACCENT_LIME = '#8EF705';
-const ACCENT_GREEN = '#488203';
+const ACCENT_LIME = '#3B82F6';
+const ACCENT_GREEN = '#0166dc';
 
 export default function AppUpdateModal() {
   const isModalVisible = useAppUpdateStore(state => state.isModalVisible);
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(142, 247, 5, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: 'rgba(72, 130, 3, 0.12)',
+    backgroundColor: 'rgba(1, 102, 220, 0.12)',
     marginBottom: 8,
   },
   badgeMandatory: {
