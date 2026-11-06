@@ -3,15 +3,20 @@
  * Backend runs on port 5001 (from .env PORT=5001)
  */
 
-// For Android emulator, use 10.0.2.2 instead of localhost
-// For iOS simulator or physical device, use your machine's local IP
-// export const BASE_URL = 'http://10.0.2.2:5001'; 
-export const BASE_URL = "https://pharsyde.jeenhost.in"
+import { Platform } from "react-native";
+
+// For wireless devices or physical phones on the same Wi-Fi, use your Mac's local IP (192.168.1.14)
+// For wired Android emulator, you can use http://10.0.2.2:5001
+// For live production server, you can use https://pharsyde.jeenhost.in
+// export const BASE_URL = 'http://192.168.1.14:5001';
+// export const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5001' : 'http://localhost:5001';
+// export const BASE_URL = "https://pharsyde.jeenhost.in";
+export const BASE_URL = "https://pharsyde.ca";
 
 /**
  * Mobile Application Current Version
  */
-export const CURRENT_APP_VERSION = '01.05.11';
+export const CURRENT_APP_VERSION = '1.0.0';
 
 /**
  * Normalizes version strings for clean comparison (e.g., '1.0.0.' -> '1.0.0')
@@ -30,6 +35,8 @@ export const API_ENDPOINTS = {
   register: `${BASE_URL}/api/auth/register`,
   me: `${BASE_URL}/api/auth/me`,
   checkEmail: `${BASE_URL}/api/auth/check-email`,
+  sendOtp: `${BASE_URL}/api/auth/otp/send`,
+  verifyOtp: `${BASE_URL}/api/auth/otp/verify`,
   paymentsPreload: `${BASE_URL}/api/payments/moneris/preload`,
   paymentsFinalize: `${BASE_URL}/api/payments/moneris/finalize`,
   paymentsCancel: `${BASE_URL}/api/payments/moneris/cancel`,
@@ -41,6 +48,7 @@ export const API_ENDPOINTS = {
   appVersion: `${BASE_URL}/api/app/version`,
   appDownload: `${BASE_URL}/api/app/download`,
   uploadDocument: `${BASE_URL}/api/upload/document`,
+  publicSettings: `${BASE_URL}/api/settings/public`,
 };
 
 /**

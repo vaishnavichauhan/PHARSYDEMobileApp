@@ -11,6 +11,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Modal,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -56,7 +57,7 @@ const CARD_GAP = 10;
 const CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
 
 const ALL_CANNABIS_QUERY =
-  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
+  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,Accessories,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
 
 const ALL_NICOTINE_QUERY =
   'Nicotine Closed Pods,Nicotine E-Juice,NICOTINE POUCHES / SNUS,Nicotine Vapes,vapes & e-juices,vaping accessories';
@@ -90,8 +91,7 @@ const HOME_SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'default', label: 'Featured / Default' },
   { id: 'price_asc', label: 'Price: Low to High' },
   { id: 'price_desc', label: 'Price: High to Low' },
-  { id: 'name_asc', label: 'Name: A to Z' },
-  { id: 'thc_desc', label: 'THC: High to Low' },
+  { id: 'thc_asc', label: 'THC: Low to High' },
 ];
 
 const HeroSwiper = React.memo(() => {
@@ -104,13 +104,7 @@ const HeroSwiper = React.memo(() => {
         autoplayLoopKeepAnimation
         data={HERO_IMAGES}
         index={0}
-        showPagination
-        paginationActiveColor="#0166dc"
-        paginationDefaultColor="#CBD5E1"
-        paginationStyleItem={styles.paginationDot}
-        paginationStyleItemActive={styles.paginationDotActive}
-        paginationStyleItemInactive={styles.paginationDotInactive}
-        paginationStyle={styles.paginationContainer}
+        showPagination={false}
         renderItem={({ item }: { item: (typeof HERO_IMAGES)[0] }) => (
           <View style={styles.slideItemContainer}>
             <View style={styles.bannerCard}>
@@ -127,6 +121,25 @@ const HeroSwiper = React.memo(() => {
   );
 });
 
+const ProductCardSkeleton = ({ pulseAnim }: { pulseAnim: Animated.Value }) => (
+  <Animated.View style={[styles.productCard, { opacity: pulseAnim }]}>
+    <View style={styles.skeletonImage} />
+    <View style={styles.cardBody}>
+      <View style={styles.brandRow}>
+        <View style={styles.skeletonBrand} />
+        <View style={styles.skeletonWeight} />
+      </View>
+      <View style={styles.skeletonTitleLine1} />
+      <View style={styles.skeletonTitleLine2} />
+      <View style={styles.skeletonSpecs} />
+      <View style={styles.priceRow}>
+        <View style={styles.skeletonPrice} />
+        <View style={styles.skeletonAddBtn} />
+      </View>
+    </View>
+  </Animated.View>
+);
+
 const HomeScreen = () => {
   // ── Local State & Refs (Primitive Hooks First) ───────────────
   const [showSortModal, setShowSortModal] = useState(false);
@@ -139,6 +152,28 @@ const HomeScreen = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState<HomePriceRange>('all');
   const [brandSearchQuery, setBrandSearchQuery] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
+
+  // ── Pulse Animation for Skeletons ────────────────────────────
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.9,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
 
   // ── Zustand Store: Product State & Actions ───────────────────
   const products = useProductStore(state => state.products);
@@ -316,10 +351,13 @@ const HomeScreen = () => {
   );
 
   // Sync external filter resets to local search text
+  const prevSearchQueryRef = useRef(searchQuery);
   useEffect(() => {
-    if (searchQuery === '' && searchText !== '') {
+    // Only reset local searchText if searchQuery was previously non-empty and just became empty externally
+    if (prevSearchQueryRef.current !== '' && searchQuery === '') {
       setSearchText('');
     }
+    prevSearchQueryRef.current = searchQuery;
   }, [searchQuery]);
 
   // Server-side search & filtering debounce
@@ -444,6 +482,19 @@ const HomeScreen = () => {
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
+    // 0. Search Query instant filter (matches product_name, brand, sku, category, pk)
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase().trim();
+      result = result.filter(p => {
+        const name = (p.product_name || '').toLowerCase();
+        const brand = (p.brand || '').toLowerCase();
+        const sku = (p.sku || '').toLowerCase();
+        const cat = (p.category || '').toLowerCase();
+        const pk = String(p.pk || '').toLowerCase();
+        return name.includes(q) || brand.includes(q) || sku.includes(q) || cat.includes(q) || pk.includes(q);
+      });
+    }
+
     // 1. Client-side Category filter
     if (selectedCategory && selectedCategory !== 'All') {
       result = result.filter(p => p.category?.trim().toLowerCase() === selectedCategory.trim().toLowerCase());
@@ -461,7 +512,7 @@ const HomeScreen = () => {
       result = result.filter(p => p.brand?.trim() === selectedBrand);
     }
 
-    // 3. Price range filter
+    // 4. Price range filter
     if (selectedPriceRange !== 'all') {
       const range = HOME_PRICE_RANGE_OPTIONS.find(r => r.id === selectedPriceRange);
       if (range) {
@@ -474,37 +525,72 @@ const HomeScreen = () => {
       }
     }
 
-    // 4. Sort
-    if (selectedSort === 'thc_desc') {
-      result.sort((a, b) => parseFloat(b.thC_LEVEL || '0') - parseFloat(a.thC_LEVEL || '0'));
+    // 5. Sort
+    if (selectedSort === 'thc_asc') {
+      result.sort((a, b) => {
+        const valA = parseFloat(a.thC_LEVEL || '0');
+        const valB = parseFloat(b.thC_LEVEL || '0');
+        return (isNaN(valA) ? 0 : valA) - (isNaN(valB) ? 0 : valB);
+      });
     } else if (selectedSort === 'price_asc') {
       result.sort((a, b) => parseFloat(a.retail_price || '0') - parseFloat(b.retail_price || '0'));
     } else if (selectedSort === 'price_desc') {
       result.sort((a, b) => parseFloat(b.retail_price || '0') - parseFloat(a.retail_price || '0'));
-    } else if (selectedSort === 'name_asc') {
-      result.sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''));
     }
 
     return result;
-  }, [products, selectedCategory, selectedBrand, selectedPriceRange, selectedSort]);
+  }, [products, searchText, selectedCategory, selectedStrain, selectedBrand, selectedPriceRange, selectedSort]);
 
   // ── Header Component for FlatList ───────────────────────────
-  const renderHeader = () => (
-    <View style={styles.headerContent}>
-      {/* ── 1. Hero Carousel using react-native-swiper-flatlist ── */}
-      <HeroSwiper />
+  const renderHeader = () => {
+    const isSearchingMode = searchText.trim().length > 0;
+
+    if (isSearchingMode) {
+      return (
+        <View style={styles.searchHeaderContainer}>
+          <View style={styles.searchHeaderRow}>
+            <View style={styles.searchHeaderTitleWrap}>
+              <Text style={styles.searchHeaderTitle}>
+                Search Results for <Text style={styles.searchHeaderHighlight}>"{searchText.trim()}"</Text>
+              </Text>
+              <Text style={styles.searchHeaderSubtitle}>
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.searchClearBtn}
+              onPress={() => {
+                setSearchText('');
+                setSearchQuery('');
+              }}
+              activeOpacity={0.75}>
+              <Text style={styles.searchClearBtnText}>Clear</Text>
+              <X size={14} color="#EF4444" strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.headerContent}>
+        {/* ── 1. Hero Carousel using react-native-swiper-flatlist ── */}
+        <HeroSwiper />
 
       {/* ── 2. New Arrivals Section (Max 4 Cards + See More) ── */}
       <View style={styles.homeCuratedSection}>
         <View style={styles.homeCuratedHeader}>
           <View style={styles.homeCuratedTitleCol}>
-            <View style={styles.homeCuratedBadgeRow}>
-              <View style={[styles.homeCuratedBadge, styles.badgeNew]}>
-                <Sparkles size={11} color="#FFFFFF" />
-                <Text style={styles.badgeTextNew}>FRESH DROPS</Text>
+            <View style={styles.curatedTitleRow}>
+              <View style={styles.titleIconBoxNew}>
+                 
+                <Crown size={16} color="#0166dc" strokeWidth={2.4} />
               </View>
+              <Text style={styles.homeCuratedTitle}>
+                New <Text style={styles.titleAccentBlue}>Arrivals</Text>
+              </Text>
             </View>
-            <Text style={styles.homeCuratedTitle}>New Arrivals</Text>
             <Text style={styles.homeCuratedSub}>
               {newArrivals.length > 0
                 ? `${newArrivals.length} fresh boutique arrivals`
@@ -522,8 +608,9 @@ const HomeScreen = () => {
         </View>
 
         {isLoadingNewArrivals && newArrivals.length === 0 ? (
-          <View style={styles.curatedLoadingWrap}>
-            <ActivityIndicator size="small" color="#0166dc" />
+          <View style={styles.homeCuratedGrid}>
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
           </View>
         ) : (
           <View style={styles.homeCuratedGrid}>
@@ -546,13 +633,14 @@ const HomeScreen = () => {
       <View style={[styles.homeCuratedSection, styles.homeCuratedSectionBest]}>
         <View style={styles.homeCuratedHeader}>
           <View style={styles.homeCuratedTitleCol}>
-            <View style={styles.homeCuratedBadgeRow}>
-              <View style={[styles.homeCuratedBadge, styles.badgeBest]}>
-                <Crown size={11} color="#F59E0B" />
-                <Text style={styles.badgeTextBest}>TOP RATED</Text>
+            <View style={styles.curatedTitleRow}>
+              <View style={styles.titleIconBoxBest}>
+                <Crown size={16} color="#D97706" strokeWidth={2.4} />
               </View>
+              <Text style={styles.homeCuratedTitle}>
+                Best <Text style={styles.titleAccentAmber}>Sellers</Text>
+              </Text>
             </View>
-            <Text style={styles.homeCuratedTitle}>Best Sellers</Text>
             <Text style={styles.homeCuratedSub}>
               {bestSellers.length > 0
                 ? `${bestSellers.length} community favorites`
@@ -570,8 +658,9 @@ const HomeScreen = () => {
         </View>
 
         {isLoadingBestSellers && bestSellers.length === 0 ? (
-          <View style={styles.curatedLoadingWrap}>
-            <ActivityIndicator size="small" color="#F59E0B" />
+          <View style={styles.homeCuratedGrid}>
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
           </View>
         ) : (
           <View style={styles.homeCuratedGrid}>
@@ -639,27 +728,6 @@ const HomeScreen = () => {
                 renderProductCard(item, `dynamic-${sec.id}-${item.pk || item.sku || item.product_name}`)
               )}
             </View>
-
-            {hasMore && (
-              <TouchableOpacity
-                style={[styles.seeMoreBottomBtn, styles.seeMoreBottomBtnDynamic]}
-                onPress={() =>
-                  setExpandedSections(prev => ({
-                    ...prev,
-                    [sec.id]: !prev[sec.id],
-                  }))
-                }
-                activeOpacity={0.85}>
-                <Text style={styles.seeMoreBottomBtnText}>
-                  {isExpanded ? 'Show Less' : `View All (${sec.products.length} Products)`}
-                </Text>
-                {isExpanded ? (
-                  <ChevronUp size={15} color="#0F172A" strokeWidth={2.4} />
-                ) : (
-                  <ChevronDown size={15} color="#0F172A" strokeWidth={2.4} />
-                )}
-              </TouchableOpacity>
-            )}
           </View>
         );
       })}
@@ -750,8 +818,9 @@ const HomeScreen = () => {
         </View>
 
         {isLoadingCategoryShowcase && displayedCannabis.length === 0 ? (
-          <View style={styles.curatedLoadingWrap}>
-            <ActivityIndicator size="small" color="#1D4ED8" />
+          <View style={styles.homeCuratedGrid}>
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
           </View>
         ) : (
           <View style={styles.homeCuratedGrid}>
@@ -790,8 +859,9 @@ const HomeScreen = () => {
         </View>
 
         {isLoadingCategoryShowcase && displayedNicotine.length === 0 ? (
-          <View style={styles.curatedLoadingWrap}>
-            <ActivityIndicator size="small" color="#0284C7" />
+          <View style={styles.homeCuratedGrid}>
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
           </View>
         ) : (
           <View style={styles.homeCuratedGrid}>
@@ -856,24 +926,59 @@ const HomeScreen = () => {
       )}
     </View>
   );
+};
+
+  const handleAddToCart = (item: Product) => {
+    addToCart(item, 1, false);
+    const key = item.pk || item.sku || item.product_name;
+    setAddedProductId(key);
+    setTimeout(() => {
+      setAddedProductId(null);
+    }, 1200);
+  };
 
   // ── Product Card Item ───────────────────────────────────────
   const renderProductCard = (item: Product, key?: string) => {
-    const strain = item.strain;
+    const rawStrain = item.strain;
+    const isNoneStrain =
+      !rawStrain ||
+      typeof rawStrain !== 'string' ||
+      rawStrain.trim().toLowerCase() === 'none' ||
+      rawStrain.trim().toLowerCase() === 'null' ||
+      rawStrain.trim().toLowerCase() === 'n/a';
+    const strain = isNoneStrain ? null : rawStrain.trim();
 
-    // Strain badge color
+    // Hide strain badge on nicotine category products
+    const isNicotine =
+      item.category &&
+      (item.category.toLowerCase().includes('nicotine') ||
+        item.category.toLowerCase().includes('vaping accessories') ||
+        item.category.toLowerCase().includes('vapes & e-juices'));
+    const showStrainBadge = !isNicotine && Boolean(strain);
+
+    // 1) Indica: Blue, Hybrid: Black, Sativa: Red
     let strainBadgeStyle = styles.hybridBadge;
     let strainTextStyle = styles.hybridText;
-    if (strain === 'Sativa') {
-      strainBadgeStyle = styles.sativaBadge;
-      strainTextStyle = styles.sativaText;
-    } else if (strain === 'Indica') {
-      strainBadgeStyle = styles.indicaBadge;
-      strainTextStyle = styles.indicaText;
+    let strainDotStyle = styles.hybridDot;
+    if (strain) {
+      const lower = strain.toLowerCase();
+      if (lower.includes('sativa')) {
+        strainBadgeStyle = styles.sativaBadge;
+        strainTextStyle = styles.sativaText;
+        strainDotStyle = styles.sativaDot;
+      } else if (lower.includes('indica')) {
+        strainBadgeStyle = styles.indicaBadge;
+        strainTextStyle = styles.indicaText;
+        strainDotStyle = styles.indicaDot;
+      }
     }
 
+    const priceNum = parseFloat(item.retail_price || '0');
+    const itemKey = item.pk || item.sku || item.product_name;
+    const isAdded = addedProductId === itemKey;
+
     return (
-      <View key={key || item.pk || item.sku || item.product_name} style={styles.productCard}>
+      <View key={key || itemKey} style={styles.productCard}>
         {/* Card Image Container – Tapping opens big image and details */}
         <TouchableOpacity
           style={styles.imageWrap}
@@ -883,7 +988,7 @@ const HomeScreen = () => {
             <Image
               source={{ uri: resolveImageUrl(item.imageUrl) || item.imageUrl }}
               style={styles.productImage}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           ) : (
             <View style={styles.noImage}>
@@ -891,16 +996,11 @@ const HomeScreen = () => {
             </View>
           )}
 
-          {/* Strain / Category Tag */}
-          {strain ? (
+          {/* 2) Highlighted Strain Badge */}
+          {showStrainBadge ? (
             <View style={[styles.strainBadge, strainBadgeStyle]}>
+              {/* <View style={[styles.strainDot, strainDotStyle]} /> */}
               <Text style={[styles.strainText, strainTextStyle]}>{strain}</Text>
-            </View>
-          ) : item.category ? (
-            <View style={[styles.strainBadge, styles.categoryBadge]}>
-              <Text style={styles.categoryBadgeText} numberOfLines={1}>
-                {item.category}
-              </Text>
             </View>
           ) : null}
         </TouchableOpacity>
@@ -909,13 +1009,9 @@ const HomeScreen = () => {
         <View style={styles.cardBody}>
           {/* Brand & Weight */}
           <View style={styles.brandRow}>
-            {item.brand ? (
-              <Text style={styles.brandText} numberOfLines={1}>
-                {item.brand}
-              </Text>
-            ) : (
-              <View style={{ flex: 1 }} />
-            )}
+            <Text style={styles.brandText} numberOfLines={1}>
+              {item.brand?.trim() || 'PHARSYDE'}
+            </Text>
             {getProductWeightDisplay(item) ? (
               <View style={styles.weightBadge}>
                 <Text style={styles.weightBadgeText}>
@@ -934,27 +1030,42 @@ const HomeScreen = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* THC / CBD */}
-          {item.thC_LEVEL ? (
-            <View style={styles.thcRow}>
-              <Text style={styles.thcLabel}>THC:</Text>
-              <Text style={styles.thcValue}>{item.thC_LEVEL}%</Text>
-            </View>
-          ) : null}
+          {/* Key Specs: THC / Category */}
+          <View style={styles.specsRow}>
+            {parseFloat(item.thC_LEVEL || '0') > 0 ? (
+              <View style={styles.thcBadge}>
+                <Text style={styles.thcBadgeLabel}>THC</Text>
+                <Text style={styles.thcBadgeValue}>
+                  {parseFloat(item.thC_LEVEL || '0').toFixed(1)}%
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.categoryBadgePill}>
+                <Text style={styles.categoryTag} numberOfLines={1}>
+                  {item.category || 'Product'}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* Price & Add Button */}
           <View style={styles.priceRow}>
-            <View>
+            <View style={styles.priceWrap}>
               <Text style={styles.priceText}>
-                ${parseFloat(item.retail_price || '0').toFixed(2)}
+                ${priceNum.toFixed(2)}
               </Text>
+              <Text style={styles.priceCurrency}>CAD</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.addBtn}
+              style={[styles.addBtn, isAdded && styles.addBtnSuccess]}
               activeOpacity={0.85}
-              onPress={() => addToCart(item, 1, true)}>
-              <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+              onPress={() => handleAddToCart(item)}>
+              {isAdded ? (
+                <Check size={16} color="#FFFFFF" strokeWidth={3} />
+              ) : (
+                <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -1037,9 +1148,14 @@ const HomeScreen = () => {
 
       {/* ── Main FlatList Grid ────────────────────────────────── */}
       {isLoading && products.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={ACCENT_DEEP} />
-        </View>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+          {renderHeader()}
+          <View style={styles.skeletonGrid}>
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <ProductCardSkeleton key={i} pulseAnim={pulseAnim} />
+            ))}
+          </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredProducts}
@@ -1054,20 +1170,42 @@ const HomeScreen = () => {
           onRefresh={handleRefresh}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🔍</Text>
-              <Text style={styles.emptyTitle}>No Products Found</Text>
-              <Text style={styles.emptySub}>
-                Try adjusting your search query or category filters.
-              </Text>
-              {(searchQuery !== '' || selectedCategory !== 'All' || selectedSort !== 'default') && (
-                <TouchableOpacity
-                  style={styles.resetBtn}
-                  onPress={resetFilters}>
-                  <Text style={styles.resetBtnText}>Reset Filters</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            isSearching ? (
+              <View style={styles.searchLoadingContainer}>
+                <ActivityIndicator size="large" color="#0166dc" />
+                <Text style={styles.searchLoadingText}>Searching products...</Text>
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyEmoji}>🔍</Text>
+                <Text style={styles.emptyTitle}>
+                  {searchText.trim() ? `No results for "${searchText.trim()}"` : 'No Products Found'}
+                </Text>
+                <Text style={styles.emptySub}>
+                  {searchText.trim()
+                    ? 'Try checking for typos or searching for a different keyword or SKU.'
+                    : 'Try adjusting your search query or category filters.'}
+                </Text>
+                {searchText.trim() ? (
+                  <TouchableOpacity
+                    style={styles.resetBtn}
+                    onPress={() => {
+                      setSearchText('');
+                      setSearchQuery('');
+                    }}>
+                    <Text style={styles.resetBtnText}>Clear Search</Text>
+                  </TouchableOpacity>
+                ) : (
+                  (searchQuery !== '' || selectedCategory !== 'All' || selectedSort !== 'default') && (
+                    <TouchableOpacity
+                      style={styles.resetBtn}
+                      onPress={resetFilters}>
+                      <Text style={styles.resetBtnText}>Reset Filters</Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
+            )
           }
         />
       )}
@@ -1650,13 +1788,75 @@ const styles = StyleSheet.create({
     marginBottom: CARD_GAP,
   },
   headerContent: {
-    paddingTop: 16,
+    paddingTop: 0,
+  },
+
+  // Search Results Header & State
+  searchHeaderContainer: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    marginBottom: 10,
+  },
+  searchHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  searchHeaderTitleWrap: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  searchHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  searchHeaderHighlight: {
+    color: '#0166dc',
+  },
+  searchHeaderSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  searchClearBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  searchClearBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  searchLoadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  searchLoadingText: {
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
   },
 
   // Hero Section
   heroSection: {
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   slideItemContainer: {
     width: SCREEN_WIDTH,
@@ -1710,7 +1910,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: HORIZONTAL_PADDING,
-    marginBottom: 14,
+    marginBottom: 8,
     gap: 10,
   },
   searchBar: {
@@ -1875,30 +2075,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Product Card
+  // Product Card & UI Changes
   productCard: {
     width: CARD_WIDTH,
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 3,
   },
   imageWrap: {
     width: '100%',
-    height: CARD_WIDTH,
-    backgroundColor: '#FFFFFF',
+    aspectRatio: 1,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    padding: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    padding: 8,
   },
   productImage: {
     width: '100%',
@@ -1909,44 +2109,68 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   noImageText: {
-    fontSize: 36,
+    fontSize: 32,
   },
+
+  // 1 & 2) Highlighted Strain Badges: Indica = Blue, Hybrid = Black, Sativa = Red
   strainBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4.5,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 10,
+  },
+  strainDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   strainText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   sativaBadge: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
   },
   sativaText: {
-    color: '#B45309',
+    color: '#FFFFFF',
+  },
+  sativaDot: {
+    backgroundColor: '#FCA5A5',
   },
   indicaBadge: {
-    backgroundColor: '#FAF5FF',
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
+    backgroundColor: '#1D4ED8',
+    borderColor: '#3B82F6',
   },
   indicaText: {
-    color: '#7E22CE',
+    color: '#FFFFFF',
+  },
+  indicaDot: {
+    backgroundColor: '#93C5FD',
   },
   hybridBadge: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
   },
   hybridText: {
-    color: '#1D4ED8',
+    color: '#FFFFFF',
+  },
+  hybridDot: {
+    backgroundColor: '#94A3B8',
   },
   categoryBadge: {
     backgroundColor: '#F1F5F9',
@@ -1959,78 +2183,187 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
   },
+
+  // 3) Card Details & UI Changes
   cardBody: {
-    padding: 12,
+    padding: 10,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
-    gap: 6,
+    gap: 4,
   },
   brandText: {
     flex: 1,
-    fontSize: 11,
-    color: MUTED,
-    fontWeight: '600',
+    fontSize: 10,
+    color: '#0166dc',
+    fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   weightBadge: {
     backgroundColor: '#F1F5F9',
     paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
+    paddingVertical: 1.5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   weightBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9.5,
+    fontWeight: '800',
     color: '#475569',
   },
   productName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: TEXT,
-    lineHeight: 18,
-    height: 36, // 2 lines
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0F172A',
+    lineHeight: 17,
+    minHeight: 34,
     marginBottom: 6,
   },
-  thcRow: {
+  specsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginBottom: 8,
   },
-  thcLabel: {
-    fontSize: 11,
-    color: MUTED,
+  thcBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    gap: 3,
   },
-  thcValue: {
-    fontSize: 11,
-    color: ACCENT_DEEP,
+  thcBadgeLabel: {
+    fontSize: 9,
     fontWeight: '700',
+    color: '#64748B',
+  },
+  thcBadgeValue: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0166dc',
+  },
+  categoryBadgePill: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    maxWidth: CARD_WIDTH - 30,
+  },
+  categoryTag: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 2,
+  },
+  priceWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
   },
   priceText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: TEXT,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  priceCurrency: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
   },
   addBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: ACCENT_GREEN,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#0166dc',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0166dc',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  addBtnSuccess: {
+    backgroundColor: '#16A34A',
+  },
+
+  // 4) Loading Skeleton Elements
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 12,
+    paddingBottom: 24,
+    gap: CARD_GAP,
+  },
+  skeletonImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonBrand: {
+    width: 60,
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonWeight: {
+    width: 45,
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonTitleLine1: {
+    width: '90%',
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    marginTop: 6,
+  },
+  skeletonTitleLine2: {
+    width: '60%',
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    marginTop: 4,
+  },
+  skeletonSpecs: {
+    width: 55,
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: '#E2E8F0',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  skeletonPrice: {
+    width: 55,
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonAddBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
   },
 
   // Loading & Empty States
@@ -2138,7 +2471,7 @@ const styles = StyleSheet.create({
   // Curated Cards (New Arrivals & Best Sellers on Home)
   homeCuratedSection: {
     paddingHorizontal: HORIZONTAL_PADDING,
-    marginTop: 18,
+    marginTop: 8,
     marginBottom: 6,
   },
   homeCuratedSectionBest: {
@@ -2153,6 +2486,37 @@ const styles = StyleSheet.create({
   homeCuratedTitleCol: {
     flex: 1,
     paddingRight: 8,
+  },
+  curatedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  titleIconBoxNew: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleIconBoxBest: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleAccentBlue: {
+    color: '#0166dc',
+  },
+  titleAccentAmber: {
+    color: '#D97706',
   },
   homeCuratedBadgeRow: {
     flexDirection: 'row',

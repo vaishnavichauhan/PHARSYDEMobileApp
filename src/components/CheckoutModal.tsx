@@ -44,6 +44,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   Lock,
+  Mail,
   Truck,
   Store,
   CreditCard,
@@ -71,6 +72,8 @@ import { useCartStore, FREE_SHIPPING_THRESHOLD, TAX_RATE, STANDARD_DELIVERY_FEE 
 import { useProfileStore } from '../store/profileStore';
 import { API_ENDPOINTS } from '../config/api';
 import { navigate } from '../navigation/navigationRef';
+import EmailVerificationModal from './EmailVerificationModal';
+import { sendOtpApi } from '../utils/otpService';
 
 const BG = '#F8FAFC';
 const CARD_BG = '#FFFFFF';
@@ -129,6 +132,14 @@ export default function CheckoutModal() {
   // Existing Account Detection (Matches Web CheckoutPage.jsx)
   const [existingAccountEmail, setExistingAccountEmail] = useState<string | null>(null);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+  // Guest Email OTP Verification State (Matches Web CheckoutPage.jsx lines 170-178)
+  const [isGuestEmailVerified, setIsGuestEmailVerified] = useState(false);
+  const [guestVerificationToken, setGuestVerificationToken] = useState<string | null>(null);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(60);
 
   // Government ID Attachment State (Optional - Matches Web CheckoutPage.jsx)
   const [isUploadingId, setIsUploadingId] = useState(false);
@@ -258,8 +269,39 @@ export default function CheckoutModal() {
 
   const handleEmailChange = (val: string) => {
     updateFormField('email', val);
-    if (existingAccountEmail && val.trim().toLowerCase() !== existingAccountEmail) {
+    const cleanVal = (val || '').trim().toLowerCase();
+    if (verifiedEmail && cleanVal !== verifiedEmail) {
+      setIsGuestEmailVerified(false);
+      setGuestVerificationToken(null);
+      setVerifiedEmail('');
+    }
+    if (existingAccountEmail && cleanVal !== existingAccountEmail) {
       setExistingAccountEmail(null);
+    }
+  };
+
+  const handleTriggerGuestOtp = async () => {
+    const cleanEmail = (formData.email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      Alert.alert('Email Required', 'Please enter a valid email address first.');
+      return false;
+    }
+    if (existingAccountEmail) {
+      openProfile('login', cleanEmail);
+      return false;
+    }
+
+    setOtpLoading(true);
+    try {
+      const res = await sendOtpApi({ email: cleanEmail, purpose: 'guest_checkout' });
+      setOtpCooldown(res.cooldownSeconds || 60);
+      setIsOtpModalOpen(true);
+      return true;
+    } catch (err: any) {
+      Alert.alert('Verification Code Error', err?.message || 'Failed to send verification code.');
+      return false;
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -361,12 +403,23 @@ export default function CheckoutModal() {
       }
     }
 
+    // Require Guest Email OTP Verification if unauthenticated (Matches Web CheckoutPage.jsx)
+    if (!isCustomerLoggedIn && !isGuestEmailVerified) {
+      handleTriggerGuestOtp();
+      return;
+    }
+
     // Branch based on payment method (Matches Web CheckoutPage.jsx)
     if (formData.paymentMethod === 'interac') {
-      const success = await submitInteracOrder(cartList, cartSubtotal, {
-        redeem_rewards: redeemRewards,
-        redeemed_points: redeemRewards ? maxRedeemablePoints : 0,
-      });
+      const success = await submitInteracOrder(
+        cartList,
+        cartSubtotal,
+        {
+          redeem_rewards: redeemRewards,
+          redeemed_points: redeemRewards ? maxRedeemablePoints : 0,
+        },
+        guestVerificationToken,
+      );
 
       if (success) {
         clearCart();
@@ -394,10 +447,15 @@ export default function CheckoutModal() {
     }
 
     // Credit Card via Moneris Hosted Checkout
-    const success = await initiateMonerisPreload(cartList, cartSubtotal, {
-      redeem_rewards: redeemRewards,
-      redeemed_points: redeemRewards ? maxRedeemablePoints : 0,
-    });
+    const success = await initiateMonerisPreload(
+      cartList,
+      cartSubtotal,
+      {
+        redeem_rewards: redeemRewards,
+        redeemed_points: redeemRewards ? maxRedeemablePoints : 0,
+      },
+      guestVerificationToken,
+    );
 
     if (!success) {
       const currentError = useCheckoutStore.getState().errorMessage;
@@ -527,9 +585,9 @@ export default function CheckoutModal() {
               {!isCustomerLoggedIn && (
                 <View style={styles.guestCalloutBanner}>
                   <View style={styles.guestCalloutLeft}>
-                    <View style={styles.guestCalloutIconWrap}>
+                    {/* <View style={styles.guestCalloutIconWrap}>
                       <Sparkles size={16} color={ACCENT_GREEN} />
-                    </View>
+                    </View> */}
                     <Text style={styles.guestCalloutText}>
                       Already registered?{' '}
                       <Text style={styles.guestCalloutBold}>
@@ -645,15 +703,46 @@ export default function CheckoutModal() {
                 <View style={styles.inputGroup}>
                   <View style={styles.labelRow}>
                     <Text style={styles.fieldLabel}>Email Address *</Text>
-                    {isCheckingEmail ? (
-                      <Text style={styles.checkingEmailText}>Checking account...</Text>
-                    ) : null}
+                    <View style={styles.emailBadgeGroup}>
+                      {isCheckingEmail ? (
+                        <Text style={styles.checkingEmailText}>Checking account...</Text>
+                      ) : null}
+                      {isCustomerLoggedIn ? (
+                        <View style={styles.accountEmailPill}>
+                          <Lock size={10} color="#64748B" />
+                          <Text style={styles.accountEmailPillText}>Account Email</Text>
+                        </View>
+                      ) : isGuestEmailVerified ? (
+                        <View style={styles.verifiedEmailPill}>
+                          <CheckCircle2 size={11} color="#16A34A" />
+                          <Text style={styles.verifiedEmailPillText}>Verified</Text>
+                        </View>
+                      ) : (
+                        formData.email && formData.email.includes('@') && !existingAccountEmail ? (
+                          <TouchableOpacity
+                            style={styles.verifyEmailBtn}
+                            onPress={handleTriggerGuestOtp}
+                            disabled={otpLoading}
+                            activeOpacity={0.75}>
+                            {otpLoading ? (
+                              <ActivityIndicator size="small" color="#0166dc" />
+                            ) : (
+                              <>
+                                <Mail size={11} color="#0166dc" />
+                                <Text style={styles.verifyEmailBtnText}>Verify Email</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        ) : null
+                      )}
+                    </View>
                   </View>
                   <TextInput
                     style={[
                       styles.input,
                       errors.email && styles.inputError,
                       existingAccountEmail && styles.inputWarning,
+                      isGuestEmailVerified && styles.inputVerified,
                     ]}
                     value={formData.email}
                     onChangeText={handleEmailChange}
@@ -662,9 +751,16 @@ export default function CheckoutModal() {
                     placeholderTextColor="#94A3B8"
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    editable={!isCustomerLoggedIn}
                   />
                   {errors.email ? (
                     <Text style={styles.fieldErrorText}>{errors.email}</Text>
+                  ) : null}
+
+                  {!isCustomerLoggedIn && !isGuestEmailVerified && !existingAccountEmail && formData.email && formData.email.includes('@') ? (
+                    <Text style={styles.guestVerifyHint}>
+                      🔒 A 6-digit code will be emailed to verify your guest order.
+                    </Text>
                   ) : null}
 
                   {/* Amber Alert Banner matching Web Frontend Screenshot */}
@@ -1603,6 +1699,27 @@ export default function CheckoutModal() {
         </SafeAreaView>
       </View>
     </Modal>
+
+    {/* Guest Email OTP Verification Modal (Matches Web CheckoutPage.jsx lines 1288-1380) */}
+    <EmailVerificationModal
+      visible={isOtpModalOpen}
+      email={(formData.email || '').trim().toLowerCase()}
+      purpose="guest_checkout"
+      title="Verify Your Email"
+      subtitle="Guest Order Confirmation"
+      initialCooldown={otpCooldown}
+      onSuccess={(token) => {
+        setGuestVerificationToken(token);
+        setIsGuestEmailVerified(true);
+        setVerifiedEmail((formData.email || '').trim().toLowerCase());
+        setIsOtpModalOpen(false);
+        Alert.alert(
+          'Email Verified',
+          'Your email has been verified! You can now complete your checkout.',
+        );
+      }}
+      onClose={() => setIsOtpModalOpen(false)}
+    />
   </>
   );
 }
@@ -1914,6 +2031,69 @@ const styles = StyleSheet.create({
   fieldHint: {
     fontSize: 10,
     color: MUTED,
+  },
+  emailBadgeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  accountEmailPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  accountEmailPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  verifiedEmailPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 12,
+  },
+  verifiedEmailPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  verifyEmailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(1, 102, 220, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(1, 102, 220, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 12,
+  },
+  verifyEmailBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0166dc',
+  },
+  inputVerified: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  guestVerifyHint: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 
   // Government-Approved ID Attachment Styles (Matches Web CheckoutPage.jsx)

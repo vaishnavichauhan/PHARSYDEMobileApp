@@ -54,7 +54,18 @@ const ProductDetailModal = () => {
 
   if (!selectedProduct) return null;
 
-  const strain = selectedProduct.strain;
+  const rawStrain = selectedProduct.strain;
+  const isNoneStrain =
+    !rawStrain ||
+    typeof rawStrain !== 'string' ||
+    rawStrain.trim().toLowerCase() === 'none' ||
+    rawStrain.trim().toLowerCase() === 'null' ||
+    rawStrain.trim().toLowerCase() === 'n/a';
+  const strain = isNoneStrain ? null : rawStrain.trim();
+  const isNoneCategory =
+    !selectedProduct.category ||
+    selectedProduct.category.trim().toLowerCase() === 'none' ||
+    selectedProduct.category.trim().toLowerCase() === 'null';
   const priceNum = parseFloat(selectedProduct.retail_price || '0');
   const totalPriceForQty = (priceNum * quantity).toFixed(2);
 
@@ -79,7 +90,7 @@ const ProductDetailModal = () => {
   const handleAddToCart = () => {
     closeDetail();
     setTimeout(() => {
-      addToCart(selectedProduct, quantity, true);
+      addToCart(selectedProduct, quantity, false);
     }, 350);
   };
 
@@ -145,7 +156,7 @@ const ProductDetailModal = () => {
             ) : null}
 
             {/* Category Pill Overlay */}
-            {selectedProduct.category ? (
+            {!isNoneCategory && selectedProduct.category ? (
               <View style={styles.categoryPill}>
                 <Text style={styles.categoryPillText} numberOfLines={1}>
                   {selectedProduct.category}
@@ -417,38 +428,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
-    gap: 4,
+    borderWidth: 1,
+    gap: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 10,
   },
   strainText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   sativaBadge: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-    borderWidth: 1,
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
   },
   sativaText: {
-    color: '#B45309',
+    color: '#FFFFFF',
   },
   indicaBadge: {
-    backgroundColor: '#FAF5FF',
-    borderColor: '#E9D5FF',
-    borderWidth: 1,
+    backgroundColor: '#1D4ED8',
+    borderColor: '#3B82F6',
   },
   indicaText: {
-    color: '#7E22CE',
+    color: '#FFFFFF',
   },
   hybridBadge: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderWidth: 1,
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
   },
   hybridText: {
-    color: '#1D4ED8',
+    color: '#FFFFFF',
   },
   categoryPill: {
     position: 'absolute',

@@ -105,11 +105,13 @@ interface CheckoutState {
     cartItems: any[],
     cartSubtotal: number,
     rewardsOptions?: { redeem_rewards?: boolean; redeemed_points?: number },
+    guestVerificationToken?: string | null,
   ) => Promise<boolean>;
   submitInteracOrder: (
     cartItems: any[],
     cartSubtotal: number,
     rewardsOptions?: { redeem_rewards?: boolean; redeemed_points?: number },
+    guestVerificationToken?: string | null,
   ) => Promise<boolean>;
   finalizeMonerisPayment: () => Promise<boolean>;
   cancelPayment: () => Promise<void>;
@@ -248,6 +250,7 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
     cartItems: any[],
     _subtotal?: number,
     rewardsOptions?: { redeem_rewards?: boolean; redeemed_points?: number },
+    guestVerificationToken?: string | null,
   ) => {
     const { formData, validateForm } = get();
     if (!validateForm(0)) {
@@ -282,6 +285,8 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
           postalCode: formData.postalCode.trim(),
           govIdUrl: formData.govIdUrl || null,
           gov_id_url: formData.govIdUrl || null,
+          verificationToken: guestVerificationToken || null,
+          verification_token: guestVerificationToken || null,
         },
         govIdUrl: formData.govIdUrl || null,
         gov_id_url: formData.govIdUrl || null,
@@ -293,6 +298,8 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
         notes: formData.specialInstructions.trim(),
         redeem_rewards: Boolean(rewardsOptions?.redeem_rewards),
         redeemed_points: rewardsOptions?.redeem_rewards ? (rewardsOptions?.redeemed_points || 0) : 0,
+        verificationToken: guestVerificationToken || null,
+        verification_token: guestVerificationToken || null,
       };
 
       const token = getCustomerToken();
@@ -356,6 +363,7 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
     cartItems: any[],
     _subtotal?: number,
     rewardsOptions?: { redeem_rewards?: boolean; redeemed_points?: number },
+    guestVerificationToken?: string | null,
   ) => {
     const { formData, validateForm } = get();
     if (!validateForm(0)) {
@@ -390,6 +398,8 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
           postalCode: formData.postalCode.trim(),
           govIdUrl: formData.govIdUrl || null,
           gov_id_url: formData.govIdUrl || null,
+          verificationToken: guestVerificationToken || null,
+          verification_token: guestVerificationToken || null,
         },
         govIdUrl: formData.govIdUrl || null,
         gov_id_url: formData.govIdUrl || null,
@@ -401,6 +411,8 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
         notes: formData.specialInstructions.trim(),
         redeem_rewards: Boolean(rewardsOptions?.redeem_rewards),
         redeemed_points: rewardsOptions?.redeem_rewards ? (rewardsOptions?.redeemed_points || 0) : 0,
+        verificationToken: guestVerificationToken || null,
+        verification_token: guestVerificationToken || null,
       };
 
       const token = getCustomerToken();

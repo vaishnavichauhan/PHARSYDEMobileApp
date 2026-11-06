@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -35,6 +36,7 @@ import { API_ENDPOINTS, resolveImageUrl } from '../config/api';
 import { Product, useProductStore } from '../store/productStore';
 import { useCartStore } from '../store/cartStore';
 import { useProductDetailStore } from '../store/productDetailStore';
+import { getProductWeightDisplay } from '../utils/cannabisLimit';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = 92;
@@ -72,6 +74,25 @@ const getCategoryIcon = (categoryName: string) => {
 interface CategoriesScreenProps {
   navigation?: any;
 }
+
+const ProductCardSkeleton = ({ pulseAnim, isSidebarOpen }: { pulseAnim: Animated.Value; isSidebarOpen: boolean }) => (
+  <Animated.View style={[styles.productCard, !isSidebarOpen && styles.productCardFull, { opacity: pulseAnim }]}>
+    <View style={[styles.skeletonImage, !isSidebarOpen && styles.skeletonImageFull]} />
+    <View style={styles.cardDetails}>
+      <View style={styles.brandRow}>
+        <View style={styles.skeletonBrand} />
+        <View style={styles.skeletonWeight} />
+      </View>
+      <View style={styles.skeletonTitleLine1} />
+      <View style={styles.skeletonTitleLine2} />
+      <View style={styles.skeletonSpecs} />
+      <View style={styles.priceRow}>
+        <View style={styles.skeletonPrice} />
+        <View style={styles.skeletonAddBtn} />
+      </View>
+    </View>
+  </Animated.View>
+);
 
 const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps) => {
   const hookNavigation = useNavigation<any>();
@@ -112,6 +133,27 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [addedPopupId, setAddedPopupId] = useState<string | null>(null);
 
+  // ── Pulse Animation for Skeletons ────────────────────────────
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.9,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+
   // ── Zustand Stores ───────────────────────────────────────────
   const storeCategories = useProductStore(state => state.categories);
   const fetchStoreCategories = useProductStore(state => state.fetchCategories);
@@ -126,7 +168,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
 
     const loadRealCategories = async () => {
       try {
-        const res = await fetch(API_ENDPOINTS.categories);
+        const res = await fetch(`${API_ENDPOINTS.categories}?hasImage=true`);
         const json = await res.json();
         const categoryList: string[] = Array.isArray(json?.categories) ? json.categories : [];
 
@@ -245,7 +287,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
   }, [products, searchQuery]);
 
   const handleAddToCart = (product: Product) => {
-    addToCart(product, 1, true);
+    addToCart(product, 1, false);
     const id = product.pk || product.sku;
     setAddedPopupId(id);
     setTimeout(() => {
@@ -303,18 +345,34 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
 
   // Render right pane product card
   const renderProductItem = ({ item }: { item: Product }) => {
-    const isAdded = addedPopupId === (item.pk || item.sku);
-    const strain = item.strain;
+    const isAdded = addedPopupId === (item.pk || item.sku || item.product_name);
+    const rawStrain = item.strain;
+    const isNoneStrain =
+      !rawStrain ||
+      typeof rawStrain !== 'string' ||
+      rawStrain.trim().toLowerCase() === 'none' ||
+      rawStrain.trim().toLowerCase() === 'null' ||
+      rawStrain.trim().toLowerCase() === 'n/a';
+    const strain = isNoneStrain ? null : rawStrain.trim();
 
+    // 1) Indica: Blue, Hybrid: Black, Sativa: Red
     let strainBadgeStyle = styles.hybridBadge;
     let strainTextStyle = styles.hybridText;
-    if (strain === 'Sativa') {
-      strainBadgeStyle = styles.sativaBadge;
-      strainTextStyle = styles.sativaText;
-    } else if (strain === 'Indica') {
-      strainBadgeStyle = styles.indicaBadge;
-      strainTextStyle = styles.indicaText;
+    let strainDotStyle = styles.hybridDot;
+    if (strain) {
+      const lower = strain.toLowerCase();
+      if (lower.includes('sativa')) {
+        strainBadgeStyle = styles.sativaBadge;
+        strainTextStyle = styles.sativaText;
+        strainDotStyle = styles.sativaDot;
+      } else if (lower.includes('indica')) {
+        strainBadgeStyle = styles.indicaBadge;
+        strainTextStyle = styles.indicaText;
+        strainDotStyle = styles.indicaDot;
+      }
     }
+
+    const priceNum = parseFloat(item.retail_price || '0');
 
     return (
       <View style={[styles.productCard, !isSidebarOpen && styles.productCardFull]}>
@@ -327,7 +385,7 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
             <Image
               source={{ uri: resolveImageUrl(item.imageUrl) || item.imageUrl }}
               style={styles.productImage}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           ) : (
             <View style={styles.noImage}>
@@ -335,21 +393,29 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
             </View>
           )}
 
-          {/* Strain Tag */}
+          {/* 2) Highlighted Strain Tag */}
           {strain ? (
             <View style={[styles.strainBadge, strainBadgeStyle]}>
+              <View style={[styles.strainDot, strainDotStyle]} />
               <Text style={[styles.strainText, strainTextStyle]}>{strain}</Text>
             </View>
           ) : null}
         </TouchableOpacity>
 
-        {/* Card Details */}
+        {/* 3) Card Details */}
         <View style={styles.cardDetails}>
-          {item.brand ? (
+          <View style={styles.brandRow}>
             <Text style={styles.brandText} numberOfLines={1}>
-              {item.brand}
+              {item.brand?.trim() || 'PHARSYDE'}
             </Text>
-          ) : null}
+            {getProductWeightDisplay(item) ? (
+              <View style={styles.weightBadge}>
+                <Text style={styles.weightBadgeText}>
+                  {getProductWeightDisplay(item)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
 
           <TouchableOpacity activeOpacity={0.8} onPress={() => openDetail(item)}>
             <Text style={styles.productName} numberOfLines={2}>
@@ -357,15 +423,32 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
             </Text>
           </TouchableOpacity>
 
-          {item.thC_LEVEL ? (
-            <Text style={styles.thcText}>THC: {item.thC_LEVEL}%</Text>
-          ) : null}
+          {/* Key Specs: THC / Category */}
+          <View style={styles.specsRow}>
+            {parseFloat(item.thC_LEVEL || '0') > 0 ? (
+              <View style={styles.thcBadge}>
+                <Text style={styles.thcBadgeLabel}>THC</Text>
+                <Text style={styles.thcBadgeValue}>
+                  {parseFloat(item.thC_LEVEL || '0').toFixed(1)}%
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.categoryBadgePill}>
+                <Text style={styles.categoryTag} numberOfLines={1}>
+                  {item.category || selectedCategory.name}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* Price & Add Button */}
           <View style={styles.priceRow}>
-            <Text style={styles.priceText}>
-              ${parseFloat(item.retail_price || '0').toFixed(2)}
-            </Text>
+            <View style={styles.priceWrap}>
+              <Text style={styles.priceText}>
+                ${priceNum.toFixed(2)}
+              </Text>
+              <Text style={styles.priceCurrency}>CAD</Text>
+            </View>
 
             <TouchableOpacity
               style={[styles.addBtn, isAdded && styles.addBtnSuccess]}
@@ -516,8 +599,10 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
 
           {/* Product Grid / Loading / Empty */}
           {isLoading && products.length === 0 ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#0166dc" />
+            <View style={styles.skeletonGrid}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <ProductCardSkeleton key={i} pulseAnim={pulseAnim} isSidebarOpen={isSidebarOpen} />
+              ))}
             </View>
           ) : (
             <FlatList
@@ -789,15 +874,15 @@ const styles = StyleSheet.create({
   /* ── Product Card ── */
   productCard: {
     width: CARD_WIDTH,
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 2,
   },
   productCardFull: {
@@ -805,17 +890,17 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: CARD_WIDTH,
-    backgroundColor: '#FFFFFF',
+    aspectRatio: 1,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    padding: 0,
+    padding: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   imageContainerFull: {
-    height: FULL_CARD_WIDTH,
+    aspectRatio: 1,
   },
   productImage: {
     width: '100%',
@@ -828,90 +913,248 @@ const styles = StyleSheet.create({
   noImageText: {
     fontSize: 28,
   },
+
+  // 1 & 2) Highlighted Strain Badges: Indica = Blue, Hybrid = Black, Sativa = Red
   strainBadge: {
     position: 'absolute',
-    top: 5,
-    left: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
+    top: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3.5,
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
+    zIndex: 10,
+  },
+  strainDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   strainText: {
     fontSize: 8.5,
-    fontWeight: '800',
+    fontWeight: '900',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   sativaBadge: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-    borderWidth: 1,
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
   },
   sativaText: {
-    color: '#B45309',
+    color: '#FFFFFF',
+  },
+  sativaDot: {
+    backgroundColor: '#FCA5A5',
   },
   indicaBadge: {
-    backgroundColor: '#FAF5FF',
-    borderColor: '#E9D5FF',
-    borderWidth: 1,
+    backgroundColor: '#1D4ED8',
+    borderColor: '#3B82F6',
   },
   indicaText: {
-    color: '#7E22CE',
+    color: '#FFFFFF',
+  },
+  indicaDot: {
+    backgroundColor: '#93C5FD',
   },
   hybridBadge: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderWidth: 1,
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
   },
   hybridText: {
-    color: '#1D4ED8',
+    color: '#FFFFFF',
+  },
+  hybridDot: {
+    backgroundColor: '#94A3B8',
   },
 
   /* Card Details */
   cardDetails: {
     padding: 8,
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+    gap: 4,
+  },
   brandText: {
+    flex: 1,
     fontSize: 9.5,
-    color: MUTED,
-    fontWeight: '600',
+    color: '#0166dc',
+    fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginBottom: 2,
+    letterSpacing: 0.4,
+  },
+  weightBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  weightBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#475569',
   },
   productName: {
     fontSize: 11.5,
-    fontWeight: '600',
-    color: TEXT,
+    fontWeight: '800',
+    color: '#0F172A',
     lineHeight: 15,
     minHeight: 30,
+    marginBottom: 4,
   },
-  thcText: {
-    fontSize: 10,
-    color: ACCENT_DEEP,
-    fontWeight: '600',
-    marginTop: 3,
+  specsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  thcBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    gap: 2,
+  },
+  thcBadgeLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  thcBadgeValue: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#0166dc',
+  },
+  categoryBadgePill: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  categoryTag: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: 2,
+  },
+  priceWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
   },
   priceText: {
-    fontSize: 12.5,
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  priceCurrency: {
+    fontSize: 8.5,
     fontWeight: '700',
-    color: TEXT,
+    color: '#64748B',
   },
   addBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: ACCENT,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#0166dc',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0166dc',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   addBtnSuccess: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#16A34A',
+  },
+
+  // Skeleton Styles
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: CARD_GAP,
+    paddingBottom: 24,
+  },
+  skeletonImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonImageFull: {
+    aspectRatio: 1,
+  },
+  skeletonBrand: {
+    width: 50,
+    height: 9,
+    borderRadius: 3,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonWeight: {
+    width: 35,
+    height: 9,
+    borderRadius: 3,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonTitleLine1: {
+    width: '90%',
+    height: 10,
+    borderRadius: 3,
+    backgroundColor: '#E2E8F0',
+    marginTop: 5,
+  },
+  skeletonTitleLine2: {
+    width: '60%',
+    height: 10,
+    borderRadius: 3,
+    backgroundColor: '#E2E8F0',
+    marginTop: 3,
+  },
+  skeletonSpecs: {
+    width: 45,
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  skeletonPrice: {
+    width: 45,
+    height: 14,
+    borderRadius: 3,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonAddBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
   },
 
   /* States */

@@ -3,7 +3,7 @@
  * Matches Web Frontend NewArrivalsPage.jsx and BestSellersPage.jsx.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   StatusBar,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -35,6 +36,7 @@ import {
   Award,
   ArrowRight,
   Filter,
+  Leaf,
 } from 'lucide-react-native';
 
 import { useCuratedStore, CuratedType } from '../store/curatedStore';
@@ -60,6 +62,25 @@ const ACCENT_GREEN = '#0166dc';
 
 type SortOption = 'default' | 'price-low' | 'price-high' | 'name';
 
+const ProductCardSkeleton = ({ pulseAnim }: { pulseAnim: Animated.Value }) => (
+  <Animated.View style={[styles.productCard, { opacity: pulseAnim }]}>
+    <View style={styles.skeletonImage} />
+    <View style={styles.cardBody}>
+      <View style={styles.brandRow}>
+        <View style={styles.skeletonBrand} />
+        <View style={styles.skeletonWeight} />
+      </View>
+      <View style={styles.skeletonTitleLine1} />
+      <View style={styles.skeletonTitleLine2} />
+      <View style={styles.skeletonSpecs} />
+      <View style={styles.priceRow}>
+        <View style={styles.skeletonPrice} />
+        <View style={styles.skeletonAddBtn} />
+      </View>
+    </View>
+  </Animated.View>
+);
+
 export default function CuratedModal() {
   const activeModal = useCuratedStore(state => state.activeModal);
   const closeCuratedModal = useCuratedStore(state => state.closeCuratedModal);
@@ -82,6 +103,37 @@ export default function CuratedModal() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortOption, setSortOption] = useState<SortOption>('default');
   const [showSortModal, setShowSortModal] = useState(false);
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
+
+  // ── Pulse Animation for Skeletons ────────────────────────────
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.9,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+
+  const handleAddToCart = (item: any) => {
+    addToCart(item, 1, false);
+    const key = item.pk || item.sku || item.product_name;
+    setAddedProductId(key);
+    setTimeout(() => {
+      setAddedProductId(null);
+    }, 1200);
+  };
 
   const isNewArrivals = activeModal === 'new-arrivals';
   const products = isNewArrivals ? newArrivals : bestSellers;
@@ -201,25 +253,96 @@ export default function CuratedModal() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
-          {/* ── Hero Banner (Matching Frontend UI) ──────────────── */}
+          {/* ── Hero Banner (Matching Frontend UI with Cannabis/Nicotine Visuals) ── */}
           <View
             style={[
               styles.heroBanner,
               isNewArrivals ? styles.heroBannerNew : styles.heroBannerBest,
             ]}>
-            {/* Ambient decorative glow */}
+            {/* Ambient decorative glowing backdrops */}
             <View
               style={[
                 styles.ambientGlow,
                 isNewArrivals ? styles.glowEmerald : styles.glowAmber,
               ]}
             />
+            <View
+              style={[
+                styles.ambientGlowSecondary,
+                isNewArrivals ? styles.glowCyan : styles.glowOrange,
+              ]}
+            />
+
+            {/* Background Cannabis & Nicotine Graphic Art Composition */}
+            <View style={styles.heroArtworkArea} pointerEvents="none">
+              {isNewArrivals ? (
+                <>
+                  {/* Floating Cannabis Card */}
+                  <View style={styles.heroCannabisCard}>
+                    <Image
+                      source={require('../assets/Images/Nicotine.png')}
+                      style={styles.heroCannabisCardImg}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.heroCardOverlay}>
+                      <View style={styles.heroCardTag}>
+                        <Leaf size={9} color="#10B981" />
+                        <Text style={styles.heroCardTagText}>CANNABIS</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Overlapping Floating Nicotine Vape Card */}
+                  <View style={styles.heroVapeCard}>
+                    <Image
+                      source={require('../assets/Images/cannabis.png')}
+                      style={styles.heroVapeCardImg}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.heroCardOverlay}>
+                      <View style={[styles.heroCardTag, styles.heroCardTagVape]}>
+                        <Flame size={9} color="#38BDF8" />
+                        <Text style={[styles.heroCardTagText, styles.heroCardTagTextVape]}>VAPES</Text>
+                      </View>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.heroBestCard}>
+                  <Image
+                    source={require('../assets/Images/hero2.png')}
+                    style={styles.heroBestCardImg}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.heroCardOverlay}>
+                    <View style={[styles.heroCardTag, styles.heroCardTagBest]}>
+                      <Star size={9} color="#FBBF24" />
+                      <Text style={[styles.heroCardTagText, styles.heroCardTagTextBest]}>TOP RATED</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={styles.heroContent}>
-             
+              {/* Badge Pill */}
+              <View
+                style={[
+                  styles.heroBadge,
+                  isNewArrivals ? styles.heroBadgeNew : styles.heroBadgeBest,
+                ]}>
+                <Sparkles size={11} color={isNewArrivals ? '#1D4ED8' : '#F59E0B'} />
+                <Text
+                  style={[
+                    styles.heroBadgeText,
+                    isNewArrivals ? styles.heroBadgeTextNew : styles.heroBadgeTextBest,
+                  ]}>
+                  {isNewArrivals ? 'CRAFT CANNABIS & VAPES' : 'TOP RATED MENU'}
+                </Text>
+              </View>
 
               {/* Title with Highlight */}
-              <Text style={styles.heroTitle}>
+              <Text style={[styles.heroTitle, isNewArrivals && styles.heroTitleDark]}>
                 {isNewArrivals ? (
                   <>
                     New <Text style={styles.heroTitleAccent}>Arrivals</Text>
@@ -232,7 +355,7 @@ export default function CuratedModal() {
               </Text>
 
               {/* Description */}
-              <Text style={styles.heroSubtitle}>
+              <Text style={[styles.heroSubtitle, isNewArrivals && styles.heroSubtitleDark]}>
                 {isNewArrivals
                   ? 'Explore the latest hand-picked additions to our live store menu. From freshly harvested strains and premium flower to artisan edibles, concentrates, and hardware.'
                   : 'Explore our most sought-after products, community-acclaimed strains, and premier dispensary picks. Hand-selected and updated directly by our store team.'}
@@ -242,21 +365,18 @@ export default function CuratedModal() {
               <View style={styles.heroStatsRow}>
                 {isNewArrivals ? (
                   <>
-                    <View style={styles.heroStatChip}>
-                      <Flame size={12} color="#3B82F6" />
-                      <Text style={styles.heroStatText}>
+                    <View style={[styles.heroStatChip, styles.heroStatChipLight]}>
+                      <Flame size={12} color="#0166dc" />
+                      <Text style={styles.heroStatTextLight}>
                         Showing latest{' '}
-                        {/* <Text style={styles.heroStatBold}>{products.length}</Text>{' '} */}
+                        <Text style={styles.heroStatBoldLight}>{products.length}</Text>{' '}
                         items
                       </Text>
                     </View>
-                    {/* <View style={styles.heroStatChip}>
-                      <Package size={12} color="#34D399" />
-                      <Text style={styles.heroStatText}>
-                        Default limit:{' '}
-                        <Text style={styles.heroStatBold}>{newArrivalsLimit}</Text>
-                      </Text>
-                    </View> */}
+                    <View style={[styles.heroStatChip, styles.heroStatChipLight]}>
+                      <Leaf size={12} color="#16A34A" />
+                      <Text style={styles.heroStatTextLight}>Fresh Drops</Text>
+                    </View>
                   </>
                 ) : (
                   <>
@@ -314,7 +434,7 @@ export default function CuratedModal() {
               </TouchableOpacity>
 
               {/* Refresh button */}
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.toolbarBtn}
                 onPress={handleRefresh}
                 disabled={isLoading}
@@ -324,7 +444,7 @@ export default function CuratedModal() {
                   color={TEXT}
                   style={isLoading ? styles.spinning : undefined}
                 />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             {/* Horizontal Category Filter Pills */}
@@ -378,11 +498,10 @@ export default function CuratedModal() {
 
           {/* ── Product Grid or Status States ────────────────────── */}
           {isLoading && products.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={ACCENT_GREEN} />
-              <Text style={styles.loadingText}>
-                Loading {isNewArrivals ? 'new arrivals' : 'best sellers'}...
-              </Text>
+            <View style={styles.skeletonGrid}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <ProductCardSkeleton key={i} pulseAnim={pulseAnim} />
+              ))}
             </View>
           ) : error && products.length === 0 ? (
             <View style={styles.errorContainer}>
@@ -426,19 +545,38 @@ export default function CuratedModal() {
           ) : (
             <View style={styles.productsGrid}>
               {filteredProducts.map(product => {
-                const strain = product.strain;
+                const rawStrain = product.strain;
+                const isNoneStrain =
+                  !rawStrain ||
+                  typeof rawStrain !== 'string' ||
+                  rawStrain.trim().toLowerCase() === 'none' ||
+                  rawStrain.trim().toLowerCase() === 'null' ||
+                  rawStrain.trim().toLowerCase() === 'n/a';
+                const strain = isNoneStrain ? null : rawStrain.trim();
+
+                // 1) Indica: Blue, Hybrid: Black, Sativa: Red
                 let strainBadgeStyle = styles.hybridBadge;
                 let strainTextStyle = styles.hybridText;
-                if (strain === 'Sativa') {
-                  strainBadgeStyle = styles.sativaBadge;
-                  strainTextStyle = styles.sativaText;
-                } else if (strain === 'Indica') {
-                  strainBadgeStyle = styles.indicaBadge;
-                  strainTextStyle = styles.indicaText;
+                let strainDotStyle = styles.hybridDot;
+                if (strain) {
+                  const lower = strain.toLowerCase();
+                  if (lower.includes('sativa')) {
+                    strainBadgeStyle = styles.sativaBadge;
+                    strainTextStyle = styles.sativaText;
+                    strainDotStyle = styles.sativaDot;
+                  } else if (lower.includes('indica')) {
+                    strainBadgeStyle = styles.indicaBadge;
+                    strainTextStyle = styles.indicaText;
+                    strainDotStyle = styles.indicaDot;
+                  }
                 }
 
+                const priceNum = parseFloat(product.retail_price || '0');
+                const itemKey = product.pk || product.sku || product.product_name;
+                const isAdded = addedProductId === itemKey;
+
                 return (
-                  <View key={product.pk || product.sku} style={styles.productCard}>
+                  <View key={itemKey} style={styles.productCard}>
                     {/* Image & Strain Badge */}
                     <TouchableOpacity
                       style={styles.imageWrap}
@@ -452,7 +590,7 @@ export default function CuratedModal() {
                               product.imageUrl,
                           }}
                           style={styles.productImage}
-                          resizeMode="cover"
+                          resizeMode="contain"
                         />
                       ) : (
                         <View style={styles.noImage}>
@@ -460,19 +598,12 @@ export default function CuratedModal() {
                         </View>
                       )}
 
+                      {/* 2) Highlighted Strain Badge */}
                       {strain ? (
                         <View style={[styles.strainBadge, strainBadgeStyle]}>
+                          <View style={[styles.strainDot, strainDotStyle]} />
                           <Text style={[styles.strainText, strainTextStyle]}>
                             {strain}
-                          </Text>
-                        </View>
-                      ) : product.category ? (
-                        <View
-                          style={[styles.strainBadge, styles.categoryBadge]}>
-                          <Text
-                            style={styles.categoryBadgeText}
-                            numberOfLines={1}>
-                            {product.category}
                           </Text>
                         </View>
                       ) : null}
@@ -482,13 +613,9 @@ export default function CuratedModal() {
                     <View style={styles.cardBody}>
                       {/* Brand & Weight */}
                       <View style={styles.brandRow}>
-                        {product.brand ? (
-                          <Text style={styles.brandText} numberOfLines={1}>
-                            {product.brand}
-                          </Text>
-                        ) : (
-                          <View style={{ flex: 1 }} />
-                        )}
+                        <Text style={styles.brandText} numberOfLines={1}>
+                          {product.brand?.trim() || 'PHARSYDE'}
+                        </Text>
                         {getProductWeightDisplay(product) ? (
                           <View style={styles.weightBadge}>
                             <Text style={styles.weightBadgeText}>
@@ -506,29 +633,42 @@ export default function CuratedModal() {
                         </Text>
                       </TouchableOpacity>
 
-                      {product.thC_LEVEL ? (
-                        <View style={styles.thcRow}>
-                          <Text style={styles.thcLabel}>THC:</Text>
-                          <Text style={styles.thcValue}>
-                            {product.thC_LEVEL}%
-                          </Text>
-                        </View>
-                      ) : null}
+                      {/* Key Specs: THC / Category */}
+                      <View style={styles.specsRow}>
+                        {parseFloat(product.thC_LEVEL || '0') > 0 ? (
+                          <View style={styles.thcBadge}>
+                            <Text style={styles.thcBadgeLabel}>THC</Text>
+                            <Text style={styles.thcBadgeValue}>
+                              {parseFloat(product.thC_LEVEL || '0').toFixed(1)}%
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.categoryBadgePill}>
+                            <Text style={styles.categoryTag} numberOfLines={1}>
+                              {product.category || 'Curated'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
 
                       {/* Price & Add Button */}
                       <View style={styles.priceRow}>
-                        <Text style={styles.priceText}>
-                          $
-                          {parseFloat(
-                            product.retail_price || '0',
-                          ).toFixed(2)}
-                        </Text>
+                        <View style={styles.priceWrap}>
+                          <Text style={styles.priceText}>
+                            ${priceNum.toFixed(2)}
+                          </Text>
+                          <Text style={styles.priceCurrency}>CAD</Text>
+                        </View>
 
                         <TouchableOpacity
-                          style={styles.addBtn}
+                          style={[styles.addBtn, isAdded && styles.addBtnSuccess]}
                           activeOpacity={0.85}
-                          onPress={() => addToCart(product, 1, true)}>
-                          <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+                          onPress={() => handleAddToCart(product)}>
+                          {isAdded ? (
+                            <Check size={16} color="#FFFFFF" strokeWidth={3} />
+                          ) : (
+                            <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+                          )}
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -699,108 +839,262 @@ const styles = StyleSheet.create({
   heroBanner: {
     margin: 14,
     borderRadius: 24,
-    padding: 20,
+    padding: 18,
     overflow: 'hidden',
     position: 'relative',
+    minHeight: 185,
   },
   heroBannerNew: {
-    backgroundColor: '#020617',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   heroBannerBest: {
     backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
   },
   ambientGlow: {
     position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    top: -40,
+    right: -30,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  ambientGlowSecondary: {
+    position: 'absolute',
+    bottom: -30,
+    right: 70,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
   },
   glowEmerald: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    backgroundColor: 'rgba(1, 102, 220, 0.07)',
+  },
+  glowCyan: {
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
   },
   glowAmber: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  glowOrange: {
+    backgroundColor: 'rgba(234, 88, 12, 0.15)',
+  },
+  heroArtworkArea: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 175,
+    zIndex: 1,
+  },
+  heroCannabisCard: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 98,
+    height: 122,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#0F172A',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  heroCannabisCardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  heroVapeCard: {
+    position: 'absolute',
+    bottom: 12,
+    right: 80,
+    width: 72,
+    height: 88,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#020617',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 5,
+    transform: [{ rotate: '-6deg' }],
+  },
+  heroVapeCardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  heroBestCard: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 120,
+    height: 130,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.45)',
+    backgroundColor: '#0F172A',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  heroBestCardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  heroCardOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    alignItems: 'center',
+  },
+  heroCardTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  heroCardTagVape: {
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  heroCardTagBest: {
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  heroCardTagText: {
+    fontSize: 7.5,
+    fontWeight: '900',
+    color: '#34D399',
+    letterSpacing: 0.4,
+  },
+  heroCardTagTextVape: {
+    color: '#38BDF8',
+  },
+  heroCardTagTextBest: {
+    color: '#FBBF24',
   },
   heroContent: {
     position: 'relative',
-    zIndex: 1,
+    zIndex: 2,
+    maxWidth: '52%',
   },
   heroBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 20,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   heroBadgeNew: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.35)',
+    borderColor: '#BFDBFE',
   },
   heroBadgeBest: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderColor: 'rgba(245, 158, 11, 0.45)',
   },
   heroBadgeText: {
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   heroBadgeTextNew: {
-    color: ACCENT_LIME,
+    color: '#1D4ED8',
   },
   heroBadgeTextBest: {
     color: '#FBBF24',
   },
   heroTitle: {
-    fontSize: 26,
+    fontSize: 23,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.4,
-    marginBottom: 8,
+    marginBottom: 6,
+  },
+  heroTitleDark: {
+    color: '#0F172A',
   },
   heroTitleAccent: {
-    color: ACCENT_LIME,
+    color: '#0166dc',
   },
   heroSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
-    lineHeight: 18,
-    marginBottom: 16,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  heroSubtitleDark: {
+    color: '#64748B',
   },
   heroStatsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   heroStatChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 7,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  heroStatChipLight: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
   },
   heroStatText: {
-    fontSize: 10.5,
+    fontSize: 10,
     color: '#CBD5E1',
+    fontWeight: '600',
+  },
+  heroStatTextLight: {
+    fontSize: 10,
+    color: '#475569',
     fontWeight: '600',
   },
   heroStatBold: {
     color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  heroStatBoldLight: {
+    color: '#0F172A',
     fontWeight: '900',
   },
 
@@ -917,29 +1211,31 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: CARD_WIDTH,
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
-    marginBottom: 2,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   imageWrap: {
     width: '100%',
-    height: 140,
+    aspectRatio: 1,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    padding: 8,
   },
   productImage: {
-    width: '85%',
-    height: '85%',
+    width: '100%',
+    height: '100%',
   },
   noImage: {
     alignItems: 'center',
@@ -948,47 +1244,80 @@ const styles = StyleSheet.create({
   noImageText: {
     fontSize: 32,
   },
+
+  // 1 & 2) Highlighted Strain Badges: Indica = Blue, Hybrid = Black, Sativa = Red
   strainBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4.5,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 10,
   },
-  indicaBadge: {
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-  },
-  indicaText: {
-    color: '#7E22CE',
-  },
-  sativaBadge: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
-  sativaText: {
-    color: '#DC2626',
-  },
-  hybridBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-  },
-  hybridText: {
-    color: '#059669',
-  },
-  categoryBadge: {
-    backgroundColor: 'rgba(15, 23, 42, 0.08)',
-  },
-  categoryBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#475569',
-    textTransform: 'uppercase',
+  strainDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   strainText: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
+  sativaBadge: {
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
+  },
+  sativaText: {
+    color: '#FFFFFF',
+  },
+  sativaDot: {
+    backgroundColor: '#FCA5A5',
+  },
+  indicaBadge: {
+    backgroundColor: '#1D4ED8',
+    borderColor: '#3B82F6',
+  },
+  indicaText: {
+    color: '#FFFFFF',
+  },
+  indicaDot: {
+    backgroundColor: '#93C5FD',
+  },
+  hybridBadge: {
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
+  },
+  hybridText: {
+    color: '#FFFFFF',
+  },
+  hybridDot: {
+    backgroundColor: '#94A3B8',
+  },
+  categoryBadge: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: BORDER,
+    maxWidth: CARD_WIDTH - 50,
+  },
+  categoryBadgeText: {
+    color: '#475569',
+    fontSize: 9,
+    fontWeight: '600',
+  },
+
+  // 3) Card Details & UI Changes
   cardBody: {
     padding: 10,
   },
@@ -996,74 +1325,176 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 4,
     gap: 4,
   },
   brandText: {
     flex: 1,
     fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
+    color: '#0166dc',
+    fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   weightBadge: {
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   weightBadgeText: {
     fontSize: 9.5,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#475569',
   },
   productName: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontWeight: '800',
-    color: TEXT,
-    lineHeight: 16,
-    height: 32,
+    color: '#0F172A',
+    lineHeight: 17,
+    minHeight: 34,
     marginBottom: 6,
   },
-  thcRow: {
+  specsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 8,
   },
-  thcLabel: {
-    fontSize: 9.5,
-    color: MUTED,
+  thcBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    gap: 3,
+  },
+  thcBadgeLabel: {
+    fontSize: 9,
     fontWeight: '700',
+    color: '#64748B',
   },
-  thcValue: {
-    fontSize: 9.5,
-    color: '#10B981',
+  thcBadgeValue: {
+    fontSize: 10,
     fontWeight: '900',
+    color: '#0166dc',
+  },
+  categoryBadgePill: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    maxWidth: CARD_WIDTH - 30,
+  },
+  categoryTag: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    marginTop: 2,
+  },
+  priceWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
   },
   priceText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '900',
-    color: TEXT,
+    color: '#0F172A',
+  },
+  priceCurrency: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
   },
   addBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: ACCENT_LIME,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#0166dc',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0166dc',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  addBtnSuccess: {
+    backgroundColor: '#16A34A',
+  },
+
+  // 4) Loading Skeleton Elements
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: HORIZONTAL_PADDING,
+    gap: CARD_GAP,
+    paddingBottom: 24,
+  },
+  skeletonImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonBrand: {
+    width: 60,
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonWeight: {
+    width: 45,
+    height: 10,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonTitleLine1: {
+    width: '90%',
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    marginTop: 6,
+  },
+  skeletonTitleLine2: {
+    width: '60%',
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    marginTop: 4,
+  },
+  skeletonSpecs: {
+    width: 55,
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: '#E2E8F0',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  skeletonPrice: {
+    width: 55,
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonAddBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
   },
 
   /* ── States ── */

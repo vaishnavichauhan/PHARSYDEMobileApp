@@ -86,7 +86,7 @@ export const CANNABIS_CATEGORIES: CatalogCategoryItem[] = [
   {
     id: 'none',
     name: 'NONE',
-    backendName: 'NONE',
+    backendName: 'Accessories,NONE',
     icon: Package,
   },
   {
@@ -116,7 +116,7 @@ export const CANNABIS_CATEGORIES: CatalogCategoryItem[] = [
 ];
 
 const ALL_CANNABIS_QUERY =
-  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
+  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,Accessories,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
 
 export default function CannabisScreen() {
   return (
@@ -129,6 +129,7 @@ export default function CannabisScreen() {
       allCategoryBackendQuery={ALL_CANNABIS_QUERY}
       allCategoryLabel="All Cannabis"
       accentColor="#0166dc"
+      showCannabisLimitBar={true}
     />
   );
 }

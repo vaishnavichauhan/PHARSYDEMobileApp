@@ -36,6 +36,8 @@ import {
 } from 'lucide-react-native';
 import { useProfileStore } from '../store/profileStore';
 import { navigate } from '../navigation/navigationRef';
+import EmailVerificationModal from './EmailVerificationModal';
+import { sendOtpApi } from '../utils/otpService';
 
 const BG = '#F8FAFC';
 const CARD_BG = '#FFFFFF';
@@ -150,6 +152,11 @@ const ProfileModal = () => {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [ageConsent, setAgeConsent] = useState(false);
 
+  // Email OTP Verification state for Customer Registration (Matches Web AuthModal.jsx)
+  const [isRegisterOtpModalOpen, setIsRegisterOtpModalOpen] = useState(false);
+  const [registerOtpLoading, setRegisterOtpLoading] = useState(false);
+  const [registerOtpCooldown, setRegisterOtpCooldown] = useState(60);
+
   // Calendar picker state for Date of Birth
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarYear, setCalendarYear] = useState(1998);
@@ -244,8 +251,16 @@ const ProfileModal = () => {
 
   const handleRegisterSubmit = async () => {
     clearError();
-    if (!registerName.trim() || !registerEmail.trim() || !registerPassword.trim()) {
+    const cleanName = registerName.trim();
+    const cleanEmail = registerEmail.trim().toLowerCase();
+    const cleanPassword = registerPassword.trim();
+
+    if (!cleanName || !cleanEmail || !cleanPassword) {
       Alert.alert('Required Fields', 'Please fill in your name, email, and password.');
+      return;
+    }
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
     if (!registerDob) {
@@ -257,12 +272,31 @@ const ProfileModal = () => {
       return;
     }
 
+    // Step 1: Send OTP verification code to customer's email (Matches Web AuthModal.jsx lines 71-98)
+    setRegisterOtpLoading(true);
+    try {
+      const res = await sendOtpApi({
+        email: cleanEmail,
+        purpose: 'customer_register',
+      });
+      setRegisterOtpCooldown(res.cooldownSeconds || 60);
+      setIsRegisterOtpModalOpen(true);
+    } catch (err: any) {
+      Alert.alert('Registration Error', err?.message || 'Failed to send verification code.');
+    } finally {
+      setRegisterOtpLoading(false);
+    }
+  };
+
+  const handleVerifyAndCompleteRegister = async (token: string) => {
+    setIsRegisterOtpModalOpen(false);
     const success = await register({
       name: registerName,
       email: registerEmail,
       phone: registerPhone,
       dateOfBirth: registerDob,
       password: registerPassword,
+      verificationToken: token,
     });
 
     if (success) {
@@ -272,6 +306,7 @@ const ProfileModal = () => {
       setRegisterDob('');
       setRegisterPassword('');
       setAgeConsent(false);
+      Alert.alert('Welcome to Pharsyde!', 'Your member account has been created and verified.');
     }
   };
 
@@ -308,9 +343,7 @@ const ProfileModal = () => {
 
           <View style={styles.headerCenter}>
             <View style={styles.headerBadgeRow}>
-              <View style={styles.headerLockBadge}>
-                <Lock size={13} color={ACCENT_GREEN} strokeWidth={2.4} />
-              </View>
+
               <Text style={styles.headerTitle} numberOfLines={1}>
                 {isLoggedIn
                   ? 'CUSTOMER PROFILE'
@@ -610,9 +643,9 @@ const ProfileModal = () => {
                     <TouchableOpacity
                       style={styles.submitButton}
                       activeOpacity={0.85}
-                      disabled={isLoading}
+                      disabled={isLoading || registerOtpLoading}
                       onPress={handleRegisterSubmit}>
-                      {isLoading ? (
+                      {isLoading || registerOtpLoading ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
                         <View style={styles.submitBtnInner}>
@@ -685,7 +718,7 @@ const ProfileModal = () => {
                         ) : null}
                       </View>
                       <Text style={styles.rewardsSubtitle}>
-                        Earn points on in-store and online purchases to redeem for instant discounts at checkout.
+                        Earn 1 point per $1 CAD spent. Redeem 1,000 points for $1.00 CAD instant discount at checkout.
                       </Text>
                     </View>
                   </View>
@@ -701,14 +734,17 @@ const ProfileModal = () => {
                       </Text>
                     </View>
 
-                    {Number(user?.reward_points_dollar_value) > 0 ? (
-                      <View style={[styles.rewardsBalanceCol, styles.rewardsDollarBorder]}>
-                        <Text style={styles.rewardsBalanceLabel}>DOLLAR VALUE</Text>
-                        <Text style={styles.rewardsDollarText}>
-                          ${Number(user?.reward_points_dollar_value).toFixed(2)} CAD
-                        </Text>
-                      </View>
-                    ) : null}
+                    <View style={[styles.rewardsBalanceCol, styles.rewardsDollarBorder]}>
+                      <Text style={styles.rewardsBalanceLabel}>DISCOUNT VALUE</Text>
+                      <Text style={styles.rewardsDiscountText}>
+                        ${(
+                          Number(user?.reward_points_dollar_value) > 0
+                            ? Number(user?.reward_points_dollar_value)
+                            : (Number(user?.reward_points) || 0) * 0.001
+                        ).toFixed(3)} CAD
+                      </Text>
+                      <Text style={styles.rewardsRateText}>1,000 pts = $1 CAD</Text>
+                    </View>
                   </View>
                 </View>
 
@@ -1052,6 +1088,18 @@ const ProfileModal = () => {
             </View>
           </View>
         </Modal>
+
+        {/* Customer Registration Email Verification Modal (Matches Web AuthModal.jsx) */}
+        <EmailVerificationModal
+          visible={isRegisterOtpModalOpen}
+          email={registerEmail.trim().toLowerCase()}
+          purpose="customer_register"
+          title="Verify Your Email"
+          subtitle="Pharsyde Member Portal"
+          initialCooldown={registerOtpCooldown}
+          onSuccess={handleVerifyAndCompleteRegister}
+          onClose={() => setIsRegisterOtpModalOpen(false)}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -1556,10 +1604,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#94A3B8',
   },
-  rewardsDollarText: {
+  rewardsDiscountText: {
     fontSize: 18,
     fontWeight: '900',
-    color: ACCENT_GREEN,
+    color: '#0166dc',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  rewardsRateText: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 
   /* ── Stats 2x2 Grid ── */

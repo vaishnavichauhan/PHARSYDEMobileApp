@@ -41,6 +41,7 @@ interface ProfileState {
     password: string;
     phone?: string;
     dateOfBirth?: string;
+    verificationToken?: string | null;
   }) => Promise<boolean>;
   logout: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
@@ -209,7 +210,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     }
   },
 
-  register: async ({ name, email, password, phone, dateOfBirth }) => {
+  register: async ({ name, email, password, phone, dateOfBirth, verificationToken }) => {
     const cleanName = (name || '').trim();
     const cleanEmail = (email || '').trim();
     const cleanPassword = (password || '').trim();
@@ -238,6 +239,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           password: cleanPassword,
           phone: (phone || '').trim(),
           dateOfBirth: formattedDob || null,
+          verificationToken: verificationToken || null,
+          verification_token: verificationToken || null,
         }),
       });
 

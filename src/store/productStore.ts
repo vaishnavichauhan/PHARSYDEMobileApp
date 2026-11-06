@@ -35,15 +35,13 @@ export type SortOption =
   | 'default'
   | 'price_asc'
   | 'price_desc'
-  | 'name_asc'
-  | 'thc_desc';
+  | 'thc_asc';
 
 export const SORT_LABELS: Record<SortOption, string> = {
   default: 'Featured',
   price_asc: 'Price: Low to High',
   price_desc: 'Price: High to Low',
-  name_asc: 'Name: A to Z',
-  thc_desc: 'THC: High to Low',
+  thc_asc: 'THC: Low to High',
 };
 
 export interface FetchProductsOptions {
@@ -95,10 +93,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
   selectedSort: 'default',
   favorites: {},
 
-  /** Fetch all categories from backend */
+  /** Fetch all categories from backend (only categories that have products with images) */
   fetchCategories: async () => {
     try {
-      const res = await fetch(API_ENDPOINTS.categories);
+      const res = await fetch(`${API_ENDPOINTS.categories}?hasImage=true`);
       const json = await res.json();
       if (json && Array.isArray(json.categories)) {
         set({ categories: ['All', ...json.categories] });
@@ -147,9 +145,6 @@ export const useProductStore = create<ProductState>((set, get) => ({
       } else if (activeSort === 'price_desc') {
         params.append('sortBy', 'retail_price');
         params.append('sortOrder', 'DESC');
-      } else if (activeSort === 'name_asc') {
-        params.append('sortBy', 'product_name');
-        params.append('sortOrder', 'ASC');
       } else {
         params.append('sortBy', 'modified');
         params.append('sortOrder', 'DESC');
@@ -238,10 +233,12 @@ export const selectFilteredProducts = (state: ProductState): Product[] => {
   let result = [...state.products];
 
   // Sorting for client-calculated fields like THC
-  if (state.selectedSort === 'thc_desc') {
-    result.sort(
-      (a, b) => parseFloat(b.thC_LEVEL || '0') - parseFloat(a.thC_LEVEL || '0'),
-    );
+  if (state.selectedSort === 'thc_asc') {
+    result.sort((a, b) => {
+      const valA = parseFloat(a.thC_LEVEL || '0');
+      const valB = parseFloat(b.thC_LEVEL || '0');
+      return (isNaN(valA) ? 0 : valA) - (isNaN(valB) ? 0 : valB);
+    });
   }
 
   return result;

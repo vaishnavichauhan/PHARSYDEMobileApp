@@ -14,6 +14,7 @@ import {
   StatusBar,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -96,10 +97,7 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
       {/* ── Top Header ──────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.brandRow}>
-            <View style={styles.pulsingDot} />
-            <Text style={styles.brandSubtitle}>CUSTOMER ACCOUNT & ORDERS</Text>
-          </View>
+         
           <Text style={styles.headerTitle} numberOfLines={1}>
             {isLoggedIn && user?.name
               ? `WELCOME, ${user.name.toUpperCase()}`
@@ -107,7 +105,7 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
           </Text>
         </View>
 
-        {isLoggedIn ? (
+        {isLoggedIn && 
           <View style={styles.headerRightActions}>
           
 
@@ -119,15 +117,7 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
               <Text style={styles.signOutBtnText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.signInTopBtn}
-            onPress={() => openProfile('login')}
-            activeOpacity={0.85}>
-            <User size={13} color="#FFFFFF" strokeWidth={2.4} />
-            <Text style={styles.signInTopBtnText}>Sign In / Register</Text>
-          </TouchableOpacity>
-        )}
+       }
       </View>
 
       {/* ── CASE 1: NOT LOGGED IN (PROTECTED VIEW PER FRONTEND) ────── */}
@@ -214,7 +204,7 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
                   ) : null}
                 </View>
                 <Text style={styles.rewardsSubtitle}>
-                  Earn points on in-store and online purchases to redeem for instant discounts at checkout.
+                  Earn 1 point per $1 CAD spent. Redeem 1,000 points for $1.00 CAD instant discount at checkout.
                 </Text>
               </View>
             </View>
@@ -230,14 +220,17 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
                 </Text>
               </View>
 
-              {Number(user?.reward_points_dollar_value) > 0 ? (
-                <View style={[styles.rewardsBalanceCol, styles.rewardsDollarBorder]}>
-                  <Text style={styles.rewardsBalanceLabel}>DOLLAR VALUE</Text>
-                  <Text style={styles.rewardsDollarText}>
-                    ${Number(user?.reward_points_dollar_value).toFixed(2)} CAD
-                  </Text>
-                </View>
-              ) : null}
+              <View style={[styles.rewardsBalanceCol, styles.rewardsDollarBorder]}>
+                <Text style={styles.rewardsBalanceLabel}>DISCOUNT VALUE</Text>
+                <Text style={styles.rewardsDiscountText}>
+                  ${(
+                    Number(user?.reward_points_dollar_value) > 0
+                      ? Number(user?.reward_points_dollar_value)
+                      : (Number(user?.reward_points) || 0) * 0.001
+                  ).toFixed(3)} CAD
+                </Text>
+                <Text style={styles.rewardsRateText}>1,000 pts = $1 CAD</Text>
+              </View>
             </View>
           </View>
 
@@ -842,10 +835,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#94A3B8',
   },
-  rewardsDollarText: {
+  rewardsDiscountText: {
     fontSize: 18,
     fontWeight: '900',
-    color: ACCENT_GREEN,
+    color: '#0166dc',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  rewardsRateText: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 
   /* ── 4 Stats Cards ── */

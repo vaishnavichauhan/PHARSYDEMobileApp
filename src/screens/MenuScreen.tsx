@@ -46,14 +46,9 @@ const STORE_INFO = {
   address: '117 Regent Ave W, Winnipeg, MB R2C 1R1',
   phone: '(204) 222-4753',
   phoneRaw: '+12042224753',
-  email: 'pharsydecannabis@gmail.com',
+  email: 'cannabis@pharsyde.ca',
   province: 'Manitoba',
   legalAge: 19,
-  hours: [
-    { days: 'Monday – Friday', time: '7:00 AM – 10:00 PM' },
-    { days: 'Saturday', time: '8:00 AM – 10:00 PM' },
-    { days: 'Sunday', time: '9:00 AM – 9:00 PM' },
-  ],
 };
 
 const MenuScreen = () => {
@@ -524,7 +519,7 @@ const MenuScreen = () => {
         desc: 'Return policies, cannabis regulations, vape protocols & age rules',
         icon: ShieldCheck,
         page: 'policies' as MenuPage,
-        badge: 'Official',
+        
       },
       {
         id: 'terms',
@@ -553,7 +548,7 @@ const MenuScreen = () => {
         {/* Curated Collections: New Arrivals & Best Sellers */}
        
 
-        <Text style={styles.menuSectionHeader}>INFORMATION & POLICIES</Text>
+        {/* <Text style={styles.menuSectionHeader}>INFORMATION & POLICIES</Text> */}
 
         {/* 4 Requested Menu Navigation Cards */}
         <View style={styles.cardsContainer}>
@@ -572,11 +567,11 @@ const MenuScreen = () => {
                   <View style={styles.menuCardTextContainer}>
                     <View style={styles.titleRow}>
                       <Text style={styles.menuCardTitle}>{item.title}</Text>
-                      {item.badge && (
+                      {/* {item.badge && (
                         <View style={styles.cardBadge}>
                           <Text style={styles.cardBadgeText}>{item.badge}</Text>
                         </View>
-                      )}
+                      )} */}
                     </View>
                     <Text style={styles.menuCardDesc} numberOfLines={2}>
                       {item.desc}
@@ -671,7 +666,7 @@ const MenuScreen = () => {
         <View style={styles.menuFooter}>
           <Text style={styles.footerBrand}>Pharsyde Cannabis Dispensary</Text>
           <Text style={styles.footerSub}>Winnipeg, Manitoba, Canada</Text>
-          <Text style={styles.footerVersion}>App Version {cleanCurrentVersion} (Build 2026)</Text>
+          {/* <Text style={styles.footerVersion}>App Version {cleanCurrentVersion} (Build 2026)</Text> */}
         </View>
       </ScrollView>
     );
