@@ -574,7 +574,7 @@ export default function CheckoutModal() {
                       styles.checkbox,
                       formData.ageConsent && styles.checkboxChecked,
                     ]}>
-                    {formData.ageConsent && <Check size={14} color="#0F172A" strokeWidth={3} />}
+                    {formData.ageConsent && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
                   </View>
                   <Text style={styles.checkboxText}>
                     I confirm under penalty of law that I am <Text style={styles.boldText}>19 years of age or older</Text> (legal age in Manitoba).
@@ -597,7 +597,7 @@ export default function CheckoutModal() {
                       styles.checkbox,
                       formData.idConsent && styles.checkboxChecked,
                     ]}>
-                    {formData.idConsent && <Check size={14} color="#0F172A" strokeWidth={3} />}
+                    {formData.idConsent && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
                   </View>
                   <Text style={styles.checkboxText}>
                     I acknowledge that <Text style={styles.boldText}>valid government-issued photo ID</Text> will be physically inspected upon store pickup or courier delivery.
@@ -1147,7 +1147,7 @@ export default function CheckoutModal() {
                             styles.checkboxSquare,
                             redeemRewards && styles.checkboxSquareChecked,
                           ]}>
-                          {redeemRewards && <Check size={13} color="#000000" strokeWidth={3} />}
+                          {redeemRewards && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
                         </View>
                         <View style={styles.rewardRedeemTextCol}>
                           <Text style={styles.rewardRedeemTitle}>
@@ -1251,7 +1251,7 @@ export default function CheckoutModal() {
                 activeOpacity={0.85}>
                 {isSubmitting ? (
                   <View style={styles.btnLoadingRow}>
-                    <ActivityIndicator size="small" color="#0F172A" />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                     <Text style={styles.primaryButtonText}>
                       {loadingMessage || (formData.paymentMethod === 'card' ? 'INITIALIZING MONERIS...' : 'SUBMITTING ORDER...')}
                     </Text>
@@ -1259,16 +1259,16 @@ export default function CheckoutModal() {
                 ) : (
                   <View style={styles.btnRow}>
                     {formData.paymentMethod === 'card' ? (
-                      <Lock size={16} color="#0F172A" strokeWidth={2.4} />
+                      <Lock size={16} color="#FFFFFF" strokeWidth={2.4} />
                     ) : (
-                      <CheckCircle2 size={16} color="#0F172A" strokeWidth={2.4} />
+                      <CheckCircle2 size={16} color="#FFFFFF" strokeWidth={2.4} />
                     )}
                     <Text style={styles.primaryButtonText}>
                       {formData.paymentMethod === 'card'
                         ? `PROCEED TO PAYMENT • $${orderTotal.toFixed(2)} CAD`
                         : `CONFIRM ORDER • $${orderTotal.toFixed(2)} CAD`}
                     </Text>
-                    <ArrowRight size={18} color="#0F172A" strokeWidth={2.4} />
+                    <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -2420,7 +2420,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },

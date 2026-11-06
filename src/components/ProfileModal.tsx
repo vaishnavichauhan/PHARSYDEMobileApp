@@ -451,10 +451,10 @@ const ProfileModal = () => {
                       disabled={isLoading}
                       onPress={handleLoginSubmit}>
                       {isLoading ? (
-                        <ActivityIndicator size="small" color="#000000" />
+                        <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
                         <View style={styles.submitBtnInner}>
-                          <Lock size={15} color="#000000" strokeWidth={2.4} />
+                          <Lock size={15} color="#FFFFFF" strokeWidth={2.4} />
                           <Text style={styles.submitButtonText}>SIGN IN TO ACCOUNT</Text>
                         </View>
                       )}
@@ -596,7 +596,7 @@ const ProfileModal = () => {
                           ageConsent && styles.checkboxBoxChecked,
                         ]}>
                         {ageConsent ? (
-                          <Check size={14} color="#000000" strokeWidth={3} />
+                          <Check size={14} color="#FFFFFF" strokeWidth={3} />
                         ) : null}
                       </View>
                       <Text style={styles.checkboxLabel}>
@@ -613,10 +613,10 @@ const ProfileModal = () => {
                       disabled={isLoading}
                       onPress={handleRegisterSubmit}>
                       {isLoading ? (
-                        <ActivityIndicator size="small" color="#000000" />
+                        <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
                         <View style={styles.submitBtnInner}>
-                          <ShieldCheck size={16} color="#000000" strokeWidth={2.4} />
+                          <ShieldCheck size={16} color="#FFFFFF" strokeWidth={2.4} />
                           <Text style={styles.submitButtonText}>CREATE MEMBER ACCOUNT</Text>
                         </View>
                       )}
@@ -1037,7 +1037,7 @@ const ProfileModal = () => {
                   style={styles.confirmDobBtn}
                   activeOpacity={0.85}
                   onPress={handleConfirmCalendarDate}>
-                  <Check size={16} color="#000000" strokeWidth={3} />
+                  <Check size={16} color="#FFFFFF" strokeWidth={3} />
                   <Text style={styles.confirmDobBtnText}>
                     Confirm Date ({formatIsoDate(calendarYear, calendarMonth, selectedDay || 1)})
                   </Text>
@@ -1345,7 +1345,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 12.5,
     fontWeight: '900',
-    color: '#000000',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -1947,7 +1947,7 @@ const styles = StyleSheet.create({
     color: TEXT,
   },
   dayCellTextSelected: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontWeight: '900',
   },
 
@@ -1989,7 +1989,7 @@ const styles = StyleSheet.create({
     color: TEXT,
   },
   monthCellTextSelected: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontWeight: '900',
   },
   yearsScroll: {
@@ -2025,7 +2025,7 @@ const styles = StyleSheet.create({
     color: TEXT,
   },
   yearCellTextSelected: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontWeight: '900',
   },
 
@@ -2054,7 +2054,7 @@ const styles = StyleSheet.create({
   confirmDobBtnText: {
     fontSize: 12.5,
     fontWeight: '900',
-    color: '#000000',
+    color: '#FFFFFF',
     letterSpacing: 0.3,
   },
   cancelDobBtn: {

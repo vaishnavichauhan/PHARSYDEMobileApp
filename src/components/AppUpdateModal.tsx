@@ -111,7 +111,7 @@ export default function AppUpdateModal() {
               style={styles.updateButton}
               onPress={performUpdate}
               activeOpacity={0.85}>
-              <ArrowDownCircle size={18} color="#0F172A" strokeWidth={2.4} />
+              <ArrowDownCircle size={18} color="#FFFFFF" strokeWidth={2.4} />
               <Text style={styles.updateButtonText}>UPDATE APP NOW</Text>
             </TouchableOpacity>
 
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   latestPillText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   notesCard: {
     width: '100%',
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   updateButtonText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   laterButton: {

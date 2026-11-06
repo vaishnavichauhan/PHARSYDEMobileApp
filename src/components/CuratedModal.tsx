@@ -528,7 +528,7 @@ export default function CuratedModal() {
                           style={styles.addBtn}
                           activeOpacity={0.85}
                           onPress={() => addToCart(product, 1, true)}>
-                          <Plus size={16} color="#0F172A" strokeWidth={2.5} />
+                          <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
   cartBadgeText: {
     fontSize: 9.5,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,

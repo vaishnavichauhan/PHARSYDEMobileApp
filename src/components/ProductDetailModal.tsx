@@ -306,7 +306,7 @@ const ProductDetailModal = () => {
             style={styles.addToCartBtn}
             onPress={handleAddToCart}
             activeOpacity={0.85}>
-            <ShoppingBag size={18} color="#0F172A" strokeWidth={2.3} />
+            <ShoppingBag size={18} color="#FFFFFF" strokeWidth={2.3} />
             <Text style={styles.addToCartText}>
               ADD TO CART • ${totalPriceForQty}
             </Text>
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
   addToCartText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
 });

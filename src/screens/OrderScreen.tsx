@@ -124,7 +124,7 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
             style={styles.signInTopBtn}
             onPress={() => openProfile('login')}
             activeOpacity={0.85}>
-            <User size={13} color="#000000" strokeWidth={2.4} />
+            <User size={13} color="#FFFFFF" strokeWidth={2.4} />
             <Text style={styles.signInTopBtnText}>Sign In / Register</Text>
           </TouchableOpacity>
         )}
@@ -156,7 +156,7 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
                 style={styles.primaryAuthBtn}
                 activeOpacity={0.85}
                 onPress={() => openProfile('login')}>
-                <User size={15} color="#000000" strokeWidth={2.4} />
+                <User size={15} color="#FFFFFF" strokeWidth={2.4} />
                 <Text style={styles.primaryAuthBtnText}>SIGN IN TO YOUR ACCOUNT</Text>
               </TouchableOpacity>
 
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
   signInTopBtnText: {
     fontSize: 11.5,
     fontWeight: '900',
-    color: '#000000',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
   },
 
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
   primaryAuthBtnText: {
     fontSize: 12.5,
     fontWeight: '900',
-    color: '#000000',
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   secondaryAuthBtn: {
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
   exploreBtnText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#000000',
+    color: '#FFFFFF',
     letterSpacing: 0.6,
   },
 

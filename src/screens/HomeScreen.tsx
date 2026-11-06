@@ -56,7 +56,7 @@ const CARD_GAP = 10;
 const CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
 
 const ALL_CANNABIS_QUERY =
-  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
+  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
 
 const ALL_NICOTINE_QUERY =
   'Nicotine Closed Pods,Nicotine E-Juice,NICOTINE POUCHES / SNUS,Nicotine Vapes,vapes & e-juices,vaping accessories';
@@ -500,7 +500,7 @@ const HomeScreen = () => {
           <View style={styles.homeCuratedTitleCol}>
             <View style={styles.homeCuratedBadgeRow}>
               <View style={[styles.homeCuratedBadge, styles.badgeNew]}>
-                <Sparkles size={11} color="#3B82F6" />
+                <Sparkles size={11} color="#FFFFFF" />
                 <Text style={styles.badgeTextNew}>FRESH DROPS</Text>
               </View>
             </View>
@@ -821,7 +821,7 @@ const HomeScreen = () => {
           activeOpacity={0.8}>
           <SlidersHorizontal
             size={16}
-            color={activeFiltersCount > 0 ? '#0F172A' : '#1E293B'}
+            color={activeFiltersCount > 0 ? '#FFFFFF' : '#1E293B'}
             strokeWidth={2.2}
           />
           <Text
@@ -954,7 +954,7 @@ const HomeScreen = () => {
               style={styles.addBtn}
               activeOpacity={0.85}
               onPress={() => addToCart(item, 1, true)}>
-              <Plus size={16} color="#0F172A" strokeWidth={2.5} />
+              <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1627,7 +1627,7 @@ const styles = StyleSheet.create({
   cartBadgeText: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   avatarButton: {
     width: 40,
@@ -1828,7 +1828,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   allProductsFilterBtnTextActive: {
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   allProductsFilterBadge: {
     position: 'absolute',
@@ -2173,7 +2173,7 @@ const styles = StyleSheet.create({
     borderColor: '#1E40AF',
   },
   badgeTextNew: {
-    color: '#3B82F6',
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -2751,7 +2751,7 @@ const styles = StyleSheet.create({
   homeApplyFilterBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
 });
 

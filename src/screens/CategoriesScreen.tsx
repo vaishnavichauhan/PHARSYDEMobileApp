@@ -372,9 +372,9 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
               onPress={() => handleAddToCart(item)}
               activeOpacity={0.85}>
               {isAdded ? (
-                <Check size={14} color="#0F172A" strokeWidth={3} />
+                <Check size={14} color="#FFFFFF" strokeWidth={3} />
               ) : (
-                <Plus size={14} color="#0F172A" strokeWidth={2.5} />
+                <Plus size={14} color="#FFFFFF" strokeWidth={2.5} />
               )}
             </TouchableOpacity>
           </View>

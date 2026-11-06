@@ -473,7 +473,7 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
                   : 'PROCEED TO SECURE CHECKOUT'}
               </Text>
               {!isCannabisLimitExceeded && (
-                <ArrowRight size={17} color="#0F172A" strokeWidth={2.4} />
+                <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
               )}
             </TouchableOpacity>
 
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
   exploreBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
   checkoutBtnText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#FFFFFF',
     letterSpacing: 0.8,
   },
   checkoutBtnTextDisabled: {

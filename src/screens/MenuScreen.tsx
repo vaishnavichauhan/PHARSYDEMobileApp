@@ -335,7 +335,7 @@ const MenuScreen = () => {
             Bring your device and receipt to our Winnipeg location or call our team for technician advice.
           </Text>
           <TouchableOpacity style={styles.helpCallBtn} onPress={handleCall} activeOpacity={0.85}>
-            <Phone size={16} color="#0F172A" />
+            <Phone size={16} color="#FFFFFF" />
             <Text style={styles.helpCallBtnText}>Call {STORE_INFO.phone}</Text>
           </TouchableOpacity>
         </View>
@@ -500,10 +500,10 @@ const MenuScreen = () => {
             disabled={isSubmittingContact}
             activeOpacity={0.85}>
             {isSubmittingContact ? (
-              <ActivityIndicator size="small" color="#0F172A" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Send size={16} color="#0F172A" />
+                <Send size={16} color="#FFFFFF" />
                 <Text style={styles.submitBtnText}>Submit Inquiry</Text>
               </>
             )}
@@ -645,7 +645,7 @@ const MenuScreen = () => {
                 style={styles.updateAppBtn}
                 onPress={performUpdate}
                 activeOpacity={0.85}>
-                <ArrowDownCircle size={16} color="#0F172A" strokeWidth={2.4} />
+                <ArrowDownCircle size={16} color="#FFFFFF" strokeWidth={2.4} />
                 <Text style={styles.updateAppBtnText}>Update App Now</Text>
               </TouchableOpacity>
             ) : null}
@@ -1131,7 +1131,7 @@ const styles = StyleSheet.create({
   helpCallBtnText: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
 
   /* ── Subpage 2: About ── */
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
 
   // Curated Drops Section
@@ -1563,7 +1563,7 @@ const styles = StyleSheet.create({
   updateAppBtnText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   checkUpdateBtn: {
     flex: 1,
