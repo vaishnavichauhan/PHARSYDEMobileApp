@@ -23,6 +23,8 @@ export interface CartItem {
 const CANNABIS_LIMIT_STORAGE_KEY = 'pharsyde_cannabis_limit';
 const FREE_DELIVERY_STORAGE_KEY = 'pharsyde_free_delivery_threshold';
 
+let hasLiveSettingsLoaded = false;
+
 export const DEFAULT_MAX_CANNABIS_GRAMS = 30.0;
 export const FREE_SHIPPING_THRESHOLD = 75.0;
 export const TAX_RATE = 0.12; // Manitoba Tax: 5% GST + 7% PST = 12%
@@ -107,16 +109,28 @@ export const useCartStore = create<CartState>((set, get) => ({
   fetchPublicSettings: async () => {
     try {
       const url = `${API_ENDPOINTS.publicSettings}?_t=${Date.now()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+          Accept: 'application/json',
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: Failed to load public settings`);
+      }
       const json = await res.json();
-      if (json?.settings?.cannabis_max_grams) {
+      if (json?.settings?.cannabis_max_grams !== undefined) {
         const parsed = parseFloat(json.settings.cannabis_max_grams);
         if (Number.isFinite(parsed) && parsed > 0) {
+          hasLiveSettingsLoaded = true;
           get().setCannabisMaxGrams(parsed);
           AsyncStorage.setItem(CANNABIS_LIMIT_STORAGE_KEY, String(parsed)).catch(() => {});
         }
       }
-      if (json?.settings?.free_delivery_threshold) {
+      if (json?.settings?.free_delivery_threshold !== undefined) {
         const parsedThreshold = parseFloat(json.settings.free_delivery_threshold);
         if (Number.isFinite(parsedThreshold) && parsedThreshold >= 0) {
           set({ freeDeliveryThreshold: parsedThreshold });
@@ -281,10 +295,10 @@ export const useCartStore = create<CartState>((set, get) => ({
     }),
 }));
 
-// Hydrate saved settings from AsyncStorage and fetch fresh public settings from backend
+// Hydrate saved settings from AsyncStorage (only if live network settings haven't arrived yet)
 AsyncStorage.getItem(CANNABIS_LIMIT_STORAGE_KEY)
   .then(saved => {
-    if (saved) {
+    if (saved && !hasLiveSettingsLoaded) {
       const parsed = parseFloat(saved);
       if (Number.isFinite(parsed) && parsed > 0) {
         useCartStore.getState().setCannabisMaxGrams(parsed);
@@ -304,5 +318,5 @@ AsyncStorage.getItem(FREE_DELIVERY_STORAGE_KEY)
   })
   .catch(() => {});
 
-// Fetch latest public settings
+// Fetch latest public settings immediately from backend API
 useCartStore.getState().fetchPublicSettings();

@@ -360,8 +360,13 @@ const HomeScreen = () => {
     prevSearchQueryRef.current = searchQuery;
   }, [searchQuery]);
 
+  const [isSearchDebouncing, setIsSearchDebouncing] = useState(false);
+
   // Server-side search & filtering debounce
   useEffect(() => {
+    if (searchText.trim() !== searchQuery.trim()) {
+      setIsSearchDebouncing(true);
+    }
     const timer = setTimeout(() => {
       setSearchQuery(searchText);
       fetchProducts({
@@ -370,10 +375,16 @@ const HomeScreen = () => {
         sort: selectedSort,
         hasImage: true,
       });
+      setIsSearchDebouncing(false);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchText, selectedCategory, selectedSort, fetchProducts, setSearchQuery]);
+  }, [searchText, selectedCategory, selectedSort, fetchProducts, setSearchQuery, searchQuery]);
+
+  const isSearchActive =
+    isSearching ||
+    isSearchDebouncing ||
+    (searchText.trim() !== '' && searchText.trim() !== searchQuery.trim());
 
   // ── Fetch Strains from backend API meta endpoint ─────────────
   useEffect(() => {
@@ -1114,7 +1125,7 @@ const HomeScreen = () => {
             autoCorrect={false}
             autoCapitalize="none"
           />
-          {isSearching ? (
+          {isSearchActive ? (
             <ActivityIndicator size="small" color={ACCENT_DEEP} style={{ marginRight: 6 }} />
           ) : searchText.length > 0 ? (
             <TouchableOpacity
@@ -1170,10 +1181,22 @@ const HomeScreen = () => {
           onRefresh={handleRefresh}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            isSearching ? (
-              <View style={styles.searchLoadingContainer}>
-                <ActivityIndicator size="large" color="#0166dc" />
-                <Text style={styles.searchLoadingText}>Searching products...</Text>
+            isSearchActive ? (
+              <View style={styles.searchSkeletonWrapper}>
+                <View style={styles.searchLoadingHeader}>
+                  <ActivityIndicator size="small" color="#0166dc" />
+                  <Text style={styles.searchLoadingText}>
+                    Searching products for "{searchText.trim()}"...
+                  </Text>
+                </View>
+                <View style={styles.columnWrapper}>
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                </View>
+                <View style={styles.columnWrapper}>
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                </View>
               </View>
             ) : (
               <View style={styles.emptyContainer}>
@@ -1846,11 +1869,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
   },
+  searchSkeletonWrapper: {
+    paddingTop: 8,
+    width: '100%',
+  },
+  searchLoadingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 4,
+  },
   searchLoadingText: {
-    marginTop: 12,
     fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
+    fontWeight: '700',
+    color: '#0166dc',
   },
 
   // Hero Section

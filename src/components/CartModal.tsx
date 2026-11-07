@@ -12,7 +12,7 @@
  * - Manitoba 19+ age compliance notice
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   View,
@@ -58,6 +58,13 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
   const isCartOpen = useCartStore(state => state.isCartOpen);
   const closeCart = useCartStore(state => state.closeCart);
   const items = useCartStore(state => state.items);
+
+  // Refresh public settings when cart drawer opens
+  useEffect(() => {
+    if (isCartOpen) {
+      useCartStore.getState().fetchPublicSettings();
+    }
+  }, [isCartOpen]);
   const totalCount = useCartStore(state => state.totalCount);
   const totalPrice = useCartStore(state => state.totalPrice);
   const totalCannabisGrams = useCartStore(state => state.totalCannabisGrams);

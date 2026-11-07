@@ -262,12 +262,25 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
     }
   };
 
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  const [isSearchPending, setIsSearchPending] = useState(false);
+
   useEffect(() => {
+    if (searchQuery.trim() !== debouncedSearchQuery.trim()) {
+      setIsSearchPending(true);
+    }
     const timer = setTimeout(() => {
-      fetchProductsForCategory(selectedCategory.backendName, searchQuery);
-    }, 350);
+      setDebouncedSearchQuery(searchQuery);
+      fetchProductsForCategory(selectedCategory.backendName, searchQuery).finally(() => {
+        setIsSearchPending(false);
+      });
+    }, 300);
     return () => clearTimeout(timer);
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, debouncedSearchQuery]);
+
+  const isSearchActive =
+    isSearchPending ||
+    (searchQuery.trim() !== '' && searchQuery.trim() !== debouncedSearchQuery.trim());
 
   const handleRefresh = () => {
     fetchProductsForCategory(selectedCategory.backendName, searchQuery, true);
@@ -544,13 +557,15 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
               onChangeText={setSearchQuery}
               autoFocus
             />
-            {searchQuery.length > 0 && (
+            {isSearchActive ? (
+              <ActivityIndicator size="small" color="#0166dc" style={{ marginRight: 4 }} />
+            ) : searchQuery.length > 0 ? (
               <TouchableOpacity
                 onPress={() => setSearchQuery('')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <X size={16} color="#64748B" />
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
         </View>
       )}
@@ -617,22 +632,31 @@ const CategoriesScreen = ({ navigation: propNavigation }: CategoriesScreenProps)
               onRefresh={handleRefresh}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyEmoji}>🌿</Text>
-                  <Text style={styles.emptyTitle}>No Products</Text>
-                  <Text style={styles.emptySub}>
-                    {searchQuery
-                      ? 'No items match your search'
-                      : 'No items currently in this category'}
-                  </Text>
-                  {searchQuery ? (
-                    <TouchableOpacity
-                      style={styles.clearSearchBtn}
-                      onPress={() => setSearchQuery('')}>
-                      <Text style={styles.clearSearchText}>Clear Search</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
+                isSearchActive ? (
+                  <View style={styles.searchLoadingBox}>
+                    <ActivityIndicator size="large" color="#0166dc" />
+                    <Text style={styles.searchLoadingText}>
+                      Searching for "{searchQuery.trim()}"...
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyEmoji}>🌿</Text>
+                    <Text style={styles.emptyTitle}>No Products Found</Text>
+                    <Text style={styles.emptySub}>
+                      {searchQuery
+                        ? `No items match "${searchQuery.trim()}"`
+                        : 'No items currently in this category'}
+                    </Text>
+                    {searchQuery ? (
+                      <TouchableOpacity
+                        style={styles.clearSearchBtn}
+                        onPress={() => setSearchQuery('')}>
+                        <Text style={styles.clearSearchText}>Clear Search</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                )
               }
             />
           )}
@@ -1158,6 +1182,18 @@ const styles = StyleSheet.create({
   },
 
   /* States */
+  searchLoadingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  searchLoadingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0166dc',
+  },
   centerContainer: {
     flex: 1,
     alignItems: 'center',

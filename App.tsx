@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { StatusBar, View, ActivityIndicator, StyleSheet, AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -26,6 +26,7 @@ import { useAgeVerificationStore } from './src/store/ageVerificationStore';
 import { useProfileStore } from './src/store/profileStore';
 import { useCuratedStore } from './src/store/curatedStore';
 import { useAppUpdateStore } from './src/store/appUpdateStore';
+import { useCartStore } from './src/store/cartStore';
 
 // ── Inner App (reads store after SafeAreaProvider is mounted) ───────────────
 function AppContent() {
@@ -38,6 +39,14 @@ function AppContent() {
     useCuratedStore.getState().fetchNewArrivals();
     useCuratedStore.getState().fetchBestSellers();
     useAppUpdateStore.getState().checkForUpdates();
+    useCartStore.getState().fetchPublicSettings();
+
+    const sub = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        useCartStore.getState().fetchPublicSettings();
+      }
+    });
+    return () => sub.remove();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

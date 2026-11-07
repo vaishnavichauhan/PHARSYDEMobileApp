@@ -214,10 +214,12 @@ export default function CategoryCatalogScreen({
   const openCart = useCartStore(state => state.openCart);
   const openDetail = useProductDetailStore(state => state.openDetail);
 
-  // Load latest storefront public settings on catalog mount
-  useEffect(() => {
-    useCartStore.getState().fetchPublicSettings();
-  }, []);
+  // Load latest storefront public settings on catalog mount & screen focus
+  useFocusEffect(
+    useCallback(() => {
+      useCartStore.getState().fetchPublicSettings();
+    }, []),
+  );
 
   // ── Cannabis Legal Limit Calculation (Dynamic via backend settings) ──
   const isCannabisScreen = Boolean(
@@ -267,13 +269,17 @@ export default function CategoryCatalogScreen({
 
   // Debounced search query for server-side lookup
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  const [isSearchPending, setIsSearchPending] = useState(false);
 
   useEffect(() => {
+    if (searchQuery.trim() !== debouncedSearchQuery.trim()) {
+      setIsSearchPending(true);
+    }
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 300);
     return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearchQuery]);
 
   // ── Fetch products from backend ──────────────────────────────
   const fetchProducts = useCallback(async (
@@ -281,9 +287,13 @@ export default function CategoryCatalogScreen({
     isRefresh = false,
     search?: string,
   ) => {
+    const isSearchQuery = Boolean(search && search.trim());
+    if (isSearchQuery) {
+      setIsSearchPending(true);
+    }
     if (isRefresh) {
       setIsRefreshing(true);
-    } else {
+    } else if (!isSearchQuery) {
       setIsLoading(true);
     }
 
@@ -314,8 +324,13 @@ export default function CategoryCatalogScreen({
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsSearchPending(false);
     }
   }, [title]);
+
+  const isSearchActive =
+    isSearchPending ||
+    (searchQuery.trim() !== '' && searchQuery.trim() !== debouncedSearchQuery.trim());
 
   useEffect(() => {
     fetchProducts(selectedCategory.backendName, false, debouncedSearchQuery);
@@ -703,13 +718,15 @@ export default function CategoryCatalogScreen({
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {searchQuery.length > 0 && (
+          {isSearchActive ? (
+            <ActivityIndicator size="small" color="#0166dc" style={{ marginRight: 4 }} />
+          ) : searchQuery.length > 0 ? (
             <TouchableOpacity
               onPress={() => setSearchQuery('')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <X size={16} color="#64748B" />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
 
         <TouchableOpacity
@@ -895,25 +912,44 @@ export default function CategoryCatalogScreen({
           onRefresh={handleRefresh}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🌿</Text>
-              <Text style={styles.emptyTitle}>No Products Found</Text>
-              <Text style={styles.emptySub}>
-                {searchQuery || activeFiltersCount > 0
-                  ? 'No items match your selected filters or search terms.'
-                  : 'No items currently available in this category.'}
-              </Text>
-              {(searchQuery || activeFiltersCount > 0) && (
-                <TouchableOpacity
-                  style={styles.clearFiltersBtn}
-                  onPress={() => {
-                    setSearchQuery('');
-                    handleResetFilters();
-                  }}>
-                  <Text style={styles.clearFiltersText}>Clear All Filters</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            isSearchActive ? (
+              <View style={styles.searchSkeletonWrapper}>
+                <View style={styles.searchLoadingHeader}>
+                  <ActivityIndicator size="small" color="#0166dc" />
+                  <Text style={styles.searchLoadingText}>
+                    Searching for "{searchQuery.trim()}"...
+                  </Text>
+                </View>
+                <View style={styles.productRow}>
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                </View>
+                <View style={styles.productRow}>
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                  <ProductCardSkeleton pulseAnim={pulseAnim} />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyEmoji}>🌿</Text>
+                <Text style={styles.emptyTitle}>No Products Found</Text>
+                <Text style={styles.emptySub}>
+                  {searchQuery || activeFiltersCount > 0
+                    ? `No items match "${searchQuery.trim()}" or selected filters.`
+                    : 'No items currently available in this category.'}
+                </Text>
+                {(searchQuery || activeFiltersCount > 0) && (
+                  <TouchableOpacity
+                    style={styles.clearFiltersBtn}
+                    onPress={() => {
+                      setSearchQuery('');
+                      handleResetFilters();
+                    }}>
+                    <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )
           }
         />
       )}
@@ -956,7 +992,7 @@ export default function CategoryCatalogScreen({
                 </Text>
               ) : (
                 <Text style={styles.floatingBarTitle} numberOfLines={2}>
-                  Cannabis Legal Limit ({cannabisMaxGrams.toFixed(0)}g per transaction):{' '}
+                  Cannabis Legal Limit (30g per transaction):{' '}
                   <Text style={styles.floatingBarTitleBold}>
                     {remainingCannabis.toFixed(1)}g
                   </Text>{' '}
@@ -1891,6 +1927,25 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 10,
     backgroundColor: '#E2E8F0',
+  },
+
+  // Search Loading States
+  searchSkeletonWrapper: {
+    paddingTop: 8,
+    width: '100%',
+  },
+  searchLoadingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 4,
+  },
+  searchLoadingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0166dc',
   },
 
   // Empty state
