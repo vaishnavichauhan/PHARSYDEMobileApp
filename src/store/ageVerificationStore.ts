@@ -76,31 +76,71 @@ export const useAgeVerificationStore = create<AgeVerificationState>((set, get) =
   },
 
   /** Verify age against local rules + confirm backend is reachable */
-  verifyAge: async (birthYear: string, province: string) => {
+  verifyAge: async (birthDateOrYear: string, province: string = 'MB') => {
     const { setError } = get();
 
-    if (!birthYear.trim()) {
-      setError('Please enter your birth year to confirm eligibility.');
+    if (!birthDateOrYear || !birthDateOrYear.trim()) {
+      setError('Please enter your date of birth to confirm eligibility.');
       return false;
     }
 
-    const year = parseInt(birthYear, 10);
-    const currentYear = new Date().getFullYear();
+    const trimmed = birthDateOrYear.trim();
+    let birthDate: Date | null = null;
 
-    if (isNaN(year) || year < 1900 || year > currentYear) {
-      setError('Please enter a valid four-digit birth year.');
+    // 1. Check DD/MM/YYYY or DD-MM-YYYY
+    const dmy = trimmed.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+    if (dmy) {
+      const day = parseInt(dmy[1], 10);
+      const month = parseInt(dmy[2], 10) - 1;
+      const year = parseInt(dmy[3], 10);
+      birthDate = new Date(year, month, day);
+      if (
+        birthDate.getFullYear() !== year ||
+        birthDate.getMonth() !== month ||
+        birthDate.getDate() !== day
+      ) {
+        birthDate = null;
+      }
+    } else {
+      // 2. Check YYYY-MM-DD or YYYY/MM/DD
+      const ymd = trimmed.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+      if (ymd) {
+        const year = parseInt(ymd[1], 10);
+        const month = parseInt(ymd[2], 10) - 1;
+        const day = parseInt(ymd[3], 10);
+        birthDate = new Date(year, month, day);
+        if (
+          birthDate.getFullYear() !== year ||
+          birthDate.getMonth() !== month ||
+          birthDate.getDate() !== day
+        ) {
+          birthDate = null;
+        }
+      } else {
+        // 3. Fallback: 4-digit year only
+        const yearOnly = trimmed.match(/^(\d{4})$/);
+        if (yearOnly) {
+          const year = parseInt(yearOnly[1], 10);
+          birthDate = new Date(year, 0, 1);
+        }
+      }
+    }
+
+    if (!birthDate || isNaN(birthDate.getTime())) {
+      setError('Please enter a valid date of birth.');
       return false;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
     }
 
     const minAge = PROVINCE_MIN_AGES[province] ?? 19;
-    const userAge = currentYear - year;
-
-    if (userAge < minAge) {
-      setError(
-        `You must be ${minAge} years of age or older to enter Pharsyde in ${
-          PROVINCES.find(p => p.code === province)?.label.split(' ')[0]
-        }.`,
-      );
+    if (age < minAge) {
+      setError('You must be 19 years of age or older to enter this website.');
       return false;
     }
 
@@ -148,6 +188,6 @@ export const useAgeVerificationStore = create<AgeVerificationState>((set, get) =
   resetVerification: async () => {
     await AsyncStorage.removeItem(AGE_VERIFIED_KEY);
     await AsyncStorage.removeItem(PROVINCE_KEY);
-    set({ isAgeVerified: false, selectedProvince: 'MB', errorMessage: '' });
+    set({ isAgeVerified: false, selectedProvince: 'MB', errorMessage: '', isLoading: false });
   },
 }));

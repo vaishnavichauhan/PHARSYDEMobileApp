@@ -35,7 +35,7 @@ export interface CheckoutFormData {
   address: string;
   city: string;
   postalCode: string;
-  paymentMethod: 'card' | 'interac';
+  paymentMethod: 'credit' | 'debit' | 'card' | 'interac';
   ageConsent: boolean;
   idConsent: boolean;
   specialInstructions: string;
@@ -129,7 +129,7 @@ const initialFormData: CheckoutFormData = {
   address: '117 Regent Ave W',
   city: 'Winnipeg',
   postalCode: 'R2C 1R1',
-  paymentMethod: 'card',
+  paymentMethod: 'credit',
   ageConsent: true,
   idConsent: true,
   specialInstructions: '',
@@ -294,7 +294,7 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
         address: formData.address.trim(),
         city: formData.city.trim() || 'Winnipeg',
         postalCode: formData.postalCode.trim(),
-        paymentMethod: formData.paymentMethod,
+        paymentMethod: formData.paymentMethod === 'debit' ? 'debit' : 'credit',
         notes: formData.specialInstructions.trim(),
         redeem_rewards: Boolean(rewardsOptions?.redeem_rewards),
         redeemed_points: rewardsOptions?.redeem_rewards ? (rewardsOptions?.redeemed_points || 0) : 0,

@@ -12,7 +12,7 @@
  * - Manitoba 19+ age compliance notice
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -42,13 +42,13 @@ import {
 import {
   useCartStore,
   FREE_SHIPPING_THRESHOLD,
-  TAX_RATE,
 } from '../store/cartStore';
 import { useCheckoutStore } from '../store/checkoutStore';
 import { resolveImageUrl } from '../config/api';
 import {
   getProductWeightDisplay,
 } from '../utils/cannabisLimit';
+import { calculateCartTaxes } from '../utils/taxCalculator';
 
 interface CartModalProps {
   onNavigateToCatalog?: () => void;
@@ -99,12 +99,13 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
   const cartCannabisGrams = totalCannabisGrams;
   const excessCannabis = Math.max(0, cartCannabisGrams - cannabisMaxGrams);
 
-  const taxableAmount = Math.max(0, cartSubtotal - promoDiscount);
-  const estimatedTax = taxableAmount * TAX_RATE;
-  const finalTotal = Math.max(
-    0,
-    cartSubtotal - promoDiscount + estimatedTax,
+  // Differential tax breakdown (5% GST for Cannabis, 12% for Nicotine/Accessories)
+  const taxSummary = useMemo(
+    () => calculateCartTaxes(cartList, { discount: promoDiscount }),
+    [cartList, promoDiscount],
   );
+  const estimatedTax = taxSummary.totalTax;
+  const finalTotal = taxSummary.finalTotal;
 
   const handleCheckout = () => {
     if (isCannabisLimitExceeded) {
@@ -335,9 +336,7 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
 
               <View style={styles.breakdownRow}>
                 <Text style={styles.breakdownLabel}>
-                  {cartCannabisGrams > 0
-                    ? 'Cannabis Tax (5% GST)'
-                    : 'Estimated Tax (MB 12% GST+PST)'}
+                  {taxSummary.taxLabel}
                 </Text>
                 <Text style={styles.breakdownVal}>
                   ${estimatedTax.toFixed(2)} CAD
@@ -402,12 +401,12 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
             </TouchableOpacity>
 
             {/* Compliance Footer */}
-            <View style={styles.complianceRow}>
+            {/* <View style={styles.complianceRow}>
               <ShieldCheck size={14} color="#0166dc" />
               <Text style={styles.complianceText}>
                 19+ Age Verification at Fulfillment • Manitoba Compliant
               </Text>
-            </View>
+            </View> */}
           </View>
         )}
       </SafeAreaView>

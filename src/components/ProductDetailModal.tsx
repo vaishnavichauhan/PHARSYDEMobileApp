@@ -193,7 +193,12 @@ const ProductDetailModal = () => {
             <View style={styles.priceRow}>
               <View style={styles.priceColumn}>
                 <Text style={styles.priceLabel}>Retail Price</Text>
-                <Text style={styles.priceValue}>${priceNum.toFixed(2)} CAD</Text>
+                <View style={styles.row}>
+           <Text style={styles.priceValue}>${priceNum.toFixed(2)}</Text>
+                <Text style={styles.priceLabel}> CAD</Text>
+                </View>
+               
+
               </View>
 
               {hasValidSalePrice && rawSalePrice !== null && (
@@ -282,13 +287,7 @@ const ProductDetailModal = () => {
             </Text>
           </View>
 
-          {/* ── Compliance Badge ─────────────────────────────────────── */}
-          <View style={styles.complianceCard}>
-            <ShieldCheck size={18} color="#0166dc" />
-            <Text style={styles.complianceText}>
-              19+ Age Verification at Fulfillment • Licensed Manitoba Retail • Lab Certified
-            </Text>
-          </View>
+       
         </ScrollView>
 
         {/* ── Bottom Action Footer (Quantity + Add to Cart) ─────────── */}
@@ -543,6 +542,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: MUTED,
     fontWeight: '500',
+  },
+  row:{
+    flexDirection:'row',
+    alignItems:'center',
   },
   priceValue: {
     fontSize: 22,

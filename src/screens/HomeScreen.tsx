@@ -403,6 +403,9 @@ const HomeScreen = () => {
       .catch(err => {
         console.warn('Could not fetch backend strains on home:', err);
       });
+
+    // Refresh storefront public settings (Cannabis Limit, Free Delivery Threshold, etc.)
+    useCartStore.getState().fetchPublicSettings();
     return () => {
       isMounted = false;
     };

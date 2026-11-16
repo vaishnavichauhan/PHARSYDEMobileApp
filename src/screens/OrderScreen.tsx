@@ -97,18 +97,13 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
       {/* ── Top Header ──────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-         
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {isLoggedIn && user?.name
-              ? `WELCOME, ${user.name.toUpperCase()}`
-              : 'MY ORDERS'}
+            My Order
           </Text>
         </View>
 
-        {isLoggedIn && 
+        {isLoggedIn && (
           <View style={styles.headerRightActions}>
-          
-
             <TouchableOpacity
               style={styles.signOutBtn}
               onPress={() => logout()}
@@ -117,8 +112,29 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
               <Text style={styles.signOutBtnText}>Sign Out</Text>
             </TouchableOpacity>
           </View>
-       }
+        )}
       </View>
+
+      {/* ── Welcome User Bar (After Header Completed, If Logged In) ── */}
+      {isLoggedIn && (
+        <View style={styles.userGreetingSection}>
+          <View style={styles.userGreetingLeft}>
+            <View style={styles.userAvatarCircle}>
+              <User size={18} color={ACCENT_GREEN} strokeWidth={2.4} />
+            </View>
+            <View style={styles.userGreetingTextWrap}>
+              <Text style={styles.userWelcomeTitle} numberOfLines={1}>
+                Welcome, <Text style={styles.userWelcomeName}>{user?.name || 'Member'}</Text>
+              </Text>
+              {user?.email ? (
+                <Text style={styles.userWelcomeEmail} numberOfLines={1}>
+                  {user.email}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* ── CASE 1: NOT LOGGED IN (PROTECTED VIEW PER FRONTEND) ────── */}
       {!isLoggedIn ? (
@@ -230,36 +246,6 @@ const OrderScreen: React.FC<OrderScreenProps> = ({ navigation }) => {
                   ).toFixed(3)} CAD
                 </Text>
                 <Text style={styles.rewardsRateText}>1,000 pts = $1 CAD</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* ── 4 Stats Summary Cards (Matching User Screenshot Exactly) ── */}
-          <View style={styles.statsCardsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>TOTAL ORDERS</Text>
-              <Text style={styles.statValueLarge}>{orderHistory.length}</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>CUSTOMER NAME</Text>
-              <Text style={styles.statValue} numberOfLines={1}>
-                {user?.name || 'Member'}
-              </Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>ACCOUNT EMAIL</Text>
-              <Text style={styles.statValueSmall} numberOfLines={1}>
-                {user?.email || 'customer@pharsyde.ca'}
-              </Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>COMPLIANCE STATUS</Text>
-              <View style={styles.statComplianceRow}>
-                <ShieldCheck size={13} color={ACCENT_GREEN} strokeWidth={2.4} />
-                <Text style={styles.statComplianceText}>19+ Verified</Text>
               </View>
             </View>
           </View>
@@ -849,55 +835,50 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 
-  /* ── 4 Stats Cards ── */
-  statsCardsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  statCard: {
-    flexBasis: '48%',
-    flexGrow: 1,
+  /* ── User Greeting Section (After Header) ── */
+  userGreetingSection: {
     backgroundColor: CARD_BG,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 12,
-  },
-  statLabel: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#94A3B8',
-    letterSpacing: 0.6,
-    marginBottom: 3,
-  },
-  statValueLarge: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: TEXT,
-  },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: TEXT,
-  },
-  statValueSmall: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  statComplianceRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
   },
-  statComplianceText: {
-    fontSize: 11.5,
+  userGreetingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  userAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(1, 102, 220, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(1, 102, 220, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userGreetingTextWrap: {
+    flex: 1,
+  },
+  userWelcomeTitle: {
+    fontSize: 14.5,
     fontWeight: '800',
+    color: TEXT,
+    letterSpacing: 0.2,
+  },
+  userWelcomeName: {
+    fontWeight: '900',
     color: ACCENT_GREEN,
+  },
+  userWelcomeEmail: {
+    fontSize: 12,
+    color: MUTED,
+    marginTop: 1,
   },
 
   /* ── Filter Tabs ── */

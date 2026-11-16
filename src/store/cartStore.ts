@@ -27,7 +27,7 @@ let hasLiveSettingsLoaded = false;
 
 export const DEFAULT_MAX_CANNABIS_GRAMS = 30.0;
 export const FREE_SHIPPING_THRESHOLD = 75.0;
-export const TAX_RATE = 0.12; // Manitoba Tax: 5% GST + 7% PST = 12%
+export const TAX_RATE = 0.05; // Cannabis Tax: 5% GST (PST exempt in Manitoba)
 export const STANDARD_DELIVERY_FEE = 9.99;
 
 interface CartState {
@@ -107,38 +107,45 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   fetchPublicSettings: async () => {
-    try {
-      const url = `${API_ENDPOINTS.publicSettings}?_t=${Date.now()}`;
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
-          Accept: 'application/json',
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: Failed to load public settings`);
-      }
-      const json = await res.json();
-      if (json?.settings?.cannabis_max_grams !== undefined) {
-        const parsed = parseFloat(json.settings.cannabis_max_grams);
-        if (Number.isFinite(parsed) && parsed > 0) {
-          hasLiveSettingsLoaded = true;
-          get().setCannabisMaxGrams(parsed);
-          AsyncStorage.setItem(CANNABIS_LIMIT_STORAGE_KEY, String(parsed)).catch(() => {});
+    const urlsToTry = [
+      `${API_ENDPOINTS.publicSettings}?_t=${Date.now()}`,
+      `https://pharsyde.ca/api/settings/public?_t=${Date.now()}`,
+      `https://pharsyde.jeenhost.in/api/settings/public?_t=${Date.now()}`,
+    ];
+    const uniqueUrls = Array.from(new Set(urlsToTry));
+
+    for (const url of uniqueUrls) {
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+            Accept: 'application/json',
+          },
+        });
+        if (!res.ok) continue;
+        const json = await res.json();
+        if (json?.settings?.cannabis_max_grams !== undefined) {
+          const parsed = parseFloat(json.settings.cannabis_max_grams);
+          if (Number.isFinite(parsed) && parsed > 0) {
+            hasLiveSettingsLoaded = true;
+            get().setCannabisMaxGrams(parsed);
+            AsyncStorage.setItem(CANNABIS_LIMIT_STORAGE_KEY, String(parsed)).catch(() => {});
+          }
         }
-      }
-      if (json?.settings?.free_delivery_threshold !== undefined) {
-        const parsedThreshold = parseFloat(json.settings.free_delivery_threshold);
-        if (Number.isFinite(parsedThreshold) && parsedThreshold >= 0) {
-          set({ freeDeliveryThreshold: parsedThreshold });
-          AsyncStorage.setItem(FREE_DELIVERY_STORAGE_KEY, String(parsedThreshold)).catch(() => {});
+        if (json?.settings?.free_delivery_threshold !== undefined) {
+          const parsedThreshold = parseFloat(json.settings.free_delivery_threshold);
+          if (Number.isFinite(parsedThreshold) && parsedThreshold >= 0) {
+            set({ freeDeliveryThreshold: parsedThreshold });
+            AsyncStorage.setItem(FREE_DELIVERY_STORAGE_KEY, String(parsedThreshold)).catch(() => {});
+          }
         }
+        return;
+      } catch {
+        // Continue to next candidate URL
       }
-    } catch (err) {
-      console.warn('Could not load public storefront settings:', err);
     }
   },
 

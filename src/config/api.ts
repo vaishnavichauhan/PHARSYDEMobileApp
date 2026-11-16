@@ -9,9 +9,9 @@ import { Platform } from "react-native";
 // For wired Android emulator, you can use http://10.0.2.2:5001
 // For live production server, you can use https://pharsyde.jeenhost.in
 // export const BASE_URL = 'http://192.168.1.14:5001';
-// export const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5001' : 'http://localhost:5001';
+export const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5001' : 'http://localhost:5001';
 // export const BASE_URL = "https://pharsyde.jeenhost.in";
-export const BASE_URL = "https://pharsyde.ca";
+//export const BASE_URL = "https://pharsyde.ca";
 
 /**
  * Mobile Application Current Version

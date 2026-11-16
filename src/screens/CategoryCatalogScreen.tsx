@@ -992,7 +992,7 @@ export default function CategoryCatalogScreen({
                 </Text>
               ) : (
                 <Text style={styles.floatingBarTitle} numberOfLines={2}>
-                  Cannabis Legal Limit (30g per transaction):{' '}
+                  Cannabis Legal Limit ({cannabisMaxGrams.toFixed(1).replace(/\.0$/, '')}g per transaction):{' '}
                   <Text style={styles.floatingBarTitleBold}>
                     {remainingCannabis.toFixed(1)}g
                   </Text>{' '}

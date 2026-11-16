@@ -24,7 +24,7 @@
  *  - "Continue Shopping" & "View in Order History" actions
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -68,7 +68,8 @@ import {
 import { pick, types, isErrorWithCode, errorCodes } from '@react-native-documents/picker';
 
 import { useCheckoutStore } from '../store/checkoutStore';
-import { useCartStore, FREE_SHIPPING_THRESHOLD, TAX_RATE, STANDARD_DELIVERY_FEE } from '../store/cartStore';
+import { useCartStore, FREE_SHIPPING_THRESHOLD, STANDARD_DELIVERY_FEE } from '../store/cartStore';
+import { calculateCartTaxes } from '../utils/taxCalculator';
 import { useProfileStore } from '../store/profileStore';
 import { API_ENDPOINTS } from '../config/api';
 import { navigate } from '../navigation/navigationRef';
@@ -342,10 +343,16 @@ export default function CheckoutModal() {
       : availablePoints * pointRate;
   const maxRedeemablePoints = Math.min(availablePoints, Math.floor(cartSubtotal / pointRate));
   const rewardDiscount = redeemRewards ? Math.round(maxRedeemablePoints * pointRate * 100) / 100 : 0.0;
-  const discountedSubtotal = Math.max(0, cartSubtotal - rewardDiscount);
-  const taxableAmount = Math.max(0, discountedSubtotal - promoDiscount);
-  const calculatedTax = Math.round(taxableAmount * TAX_RATE * 100) / 100;
-  const orderTotal = Math.max(0, Math.round((taxableAmount + deliveryFee + calculatedTax) * 100) / 100);
+  const totalDiscount = rewardDiscount + promoDiscount;
+  const taxSummary = useMemo(() => {
+    return calculateCartTaxes(cartList, {
+      discount: totalDiscount,
+      shipping: deliveryFee,
+    });
+  }, [cartList, totalDiscount, deliveryFee]);
+
+  const calculatedTax = taxSummary.totalTax;
+  const orderTotal = taxSummary.finalTotal;
 
   // Sync customer name into cardholder
   useEffect(() => {
@@ -409,44 +416,7 @@ export default function CheckoutModal() {
       return;
     }
 
-    // Branch based on payment method (Matches Web CheckoutPage.jsx)
-    if (formData.paymentMethod === 'interac') {
-      const success = await submitInteracOrder(
-        cartList,
-        cartSubtotal,
-        {
-          redeem_rewards: redeemRewards,
-          redeemed_points: redeemRewards ? maxRedeemablePoints : 0,
-        },
-        guestVerificationToken,
-      );
-
-      if (success) {
-        clearCart();
-        if (isCustomerLoggedIn) {
-          useProfileStore.getState().fetchCurrentUser();
-        }
-      } else {
-        const currentError = useCheckoutStore.getState().errorMessage;
-        if (currentError && currentError.toLowerCase().includes('already exists')) {
-          setExistingAccountEmail(cleanEmail);
-          Alert.alert(
-            'Account Found',
-            `We found an account for ${cleanEmail}! Please log in to complete your checkout.`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Log In',
-                onPress: () => openProfile('login', cleanEmail),
-              },
-            ],
-          );
-        }
-      }
-      return;
-    }
-
-    // Credit Card via Moneris Hosted Checkout
+    // Instant Online Payment (Credit Card / Debit Card) via Moneris Hosted Checkout (Matches Web CheckoutPage.jsx)
     const success = await initiateMonerisPreload(
       cartList,
       cartSubtotal,
@@ -576,9 +546,6 @@ export default function CheckoutModal() {
               <View style={styles.pageHeader}>
                 <Text style={styles.badgeSubtitle}>SECURE TRANSACTION</Text>
                 <Text style={styles.pageTitle}>CHECKOUT</Text>
-                <Text style={styles.pageSubDescription}>
-                  Complete your Manitoba age-verified fulfillment details.
-                </Text>
               </View>
 
               {/* Member Sign In Callout if Guest (Matches Web CheckoutPage.jsx lines 448-467) */}
@@ -615,7 +582,7 @@ export default function CheckoutModal() {
               {/* Step 1: 1. Age & Eligibility Compliance */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeaderRow}>
-                  <ShieldCheck size={20} color="#EA580C" />
+                  {/* <ShieldCheck size={20} color="#EA580C" /> */}
                   <Text style={styles.sectionTitle}>1. Age & Eligibility Compliance</Text>
                 </View>
 
@@ -1096,84 +1063,84 @@ export default function CheckoutModal() {
 
               {/* Step 4: 4. Payment Method */}
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>4. Payment Method</Text>
+                <View style={styles.paymentSectionHeader}>
+                  <Text style={styles.sectionTitle}>4. Payment Method</Text>
+                  <View style={styles.instantCheckoutBadge}>
+                    <Text style={styles.instantCheckoutBadgeText}>INSTANT CARD CHECKOUT</Text>
+                  </View>
+                </View>
 
                 <View style={styles.paymentMethodList}>
-                  {/* Option 1: Credit Card (Instant Online Payment) */}
+                  {/* Option 1: Credit Card */}
                   <TouchableOpacity
                     style={[
                       styles.paymentOptionCard,
-                      formData.paymentMethod === 'card' && styles.paymentOptionCardActive,
+                      (formData.paymentMethod === 'credit' || formData.paymentMethod === 'card') && styles.paymentOptionCardActive,
                     ]}
-                    onPress={() => updateFormField('paymentMethod', 'card')}
+                    onPress={() => updateFormField('paymentMethod', 'credit')}
                     activeOpacity={0.8}>
                     <View style={styles.paymentOptionLeft}>
-                      <CreditCard size={20} color="#EA580C" />
+                      <View style={styles.creditCardIconBox}>
+                        <CreditCard size={18} color="#EA580C" />
+                      </View>
                       <View style={styles.paymentOptionInfo}>
-                        <Text style={styles.paymentOptionName}>
-                          Credit Card (Instant Online Payment)
-                        </Text>
+                        <View style={styles.paymentTitleRow}>
+                          <Text style={styles.paymentOptionName}>Credit Card</Text>
+                          <View style={styles.creditInstantBadge}>
+                            <Text style={styles.creditInstantBadgeText}>Instant Online</Text>
+                          </View>
+                        </View>
                         <Text style={styles.paymentOptionSub}>
-                          Secure encrypted 256-bit checkout
+                          Visa, MasterCard, American Express, Discover
                         </Text>
                       </View>
                     </View>
                     <View
                       style={[
                         styles.paymentRadioOuter,
-                        formData.paymentMethod === 'card' && styles.paymentRadioOuterActive,
+                        (formData.paymentMethod === 'credit' || formData.paymentMethod === 'card') && styles.paymentRadioOuterActive,
                       ]}>
-                      {formData.paymentMethod === 'card' && (
+                      {(formData.paymentMethod === 'credit' || formData.paymentMethod === 'card') && (
                         <View style={styles.paymentRadioInnerActive} />
                       )}
                     </View>
                   </TouchableOpacity>
 
-                  {/* Option 2: Interac e-Transfer */}
+                  {/* Option 2: Debit Card */}
                   <TouchableOpacity
                     style={[
                       styles.paymentOptionCard,
-                      formData.paymentMethod === 'interac' && styles.paymentOptionCardActive,
+                      formData.paymentMethod === 'debit' && styles.paymentOptionCardActive,
                     ]}
-                    onPress={() => updateFormField('paymentMethod', 'interac')}
+                    onPress={() => updateFormField('paymentMethod', 'debit')}
                     activeOpacity={0.8}>
                     <View style={styles.paymentOptionLeft}>
-                      <Building size={20} color="#0166dc" />
+                      <View style={styles.debitCardIconBox}>
+                        <CreditCard size={18} color="#2563EB" />
+                      </View>
                       <View style={styles.paymentOptionInfo}>
-                        <Text style={styles.paymentOptionName}>
-                          Interac e-Transfer
-                        </Text>
+                        <View style={styles.paymentTitleRow}>
+                          <Text style={styles.paymentOptionName}>Debit Card</Text>
+                          <View style={styles.debitInstantBadge}>
+                            <Text style={styles.debitInstantBadgeText}>Instant Online</Text>
+                          </View>
+                        </View>
                         <Text style={styles.paymentOptionSub}>
-                          Instant transfer instructions sent via email to pay@pharsyde.ca
+                          Visa Debit & Debit MasterCard (Direct Canadian Bank Cards)
                         </Text>
                       </View>
                     </View>
                     <View
                       style={[
                         styles.paymentRadioOuter,
-                        formData.paymentMethod === 'interac' && styles.paymentRadioOuterActive,
+                        formData.paymentMethod === 'debit' && styles.paymentRadioOuterActive,
                       ]}>
-                      {formData.paymentMethod === 'interac' && (
+                      {formData.paymentMethod === 'debit' && (
                         <View style={styles.paymentRadioInnerActive} />
                       )}
                     </View>
                   </TouchableOpacity>
                 </View>
-
-                {/* Moneris Hosted Gateway Checkout Notice (Shown when Card is selected) */}
-                {formData.paymentMethod === 'card' && (
-                  <View style={styles.monerisHostedNotice}>
-                    <View style={styles.monerisHostedNoticeHeader}>
-                      <ShieldCheck size={16} color="#059669" />
-                      <Text style={styles.monerisHostedNoticeTitle}>
-                        Moneris Hosted Gateway Checkout
-                      </Text>
-                    </View>
-                    <Text style={styles.monerisHostedNoticeText}>
-                      You will complete payment in the next step via Moneris's secure hosted payment portal. Your card details are processed directly by the banking network and are never stored on Pharsyde servers (PCI-DSS SAQ-A Certified).
-                    </Text>
-                  </View>
-                )}
               </View>
 
               {/* Order Summary & Pricing Breakdown */}
@@ -1303,7 +1270,7 @@ export default function CheckoutModal() {
                 <View style={styles.summaryRow}>
                   <View style={styles.rewardSummaryLeft}>
                     <Sparkles size={14} color="#D97706" />
-                    <Text style={styles.summaryLabel}>Reward Tokens</Text>
+                    <Text style={styles.summaryLabel}>Reward Points Discount</Text>
                     <Text style={styles.rewardAvailTag}>({availablePoints} avail)</Text>
                   </View>
                   <Text
@@ -1320,7 +1287,7 @@ export default function CheckoutModal() {
                 </View>
 
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Estimated Manitoba Tax (12%)</Text>
+                  <Text style={styles.summaryLabel}>{taxSummary.taxLabel}</Text>
                   <Text style={styles.summaryValue}>${calculatedTax.toFixed(2)} CAD</Text>
                 </View>
 
@@ -1349,20 +1316,14 @@ export default function CheckoutModal() {
                   <View style={styles.btnLoadingRow}>
                     <ActivityIndicator size="small" color="#FFFFFF" />
                     <Text style={styles.primaryButtonText}>
-                      {loadingMessage || (formData.paymentMethod === 'card' ? 'INITIALIZING MONERIS...' : 'SUBMITTING ORDER...')}
+                      {loadingMessage || 'INITIALIZING MONERIS...'}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.btnRow}>
-                    {formData.paymentMethod === 'card' ? (
-                      <Lock size={16} color="#FFFFFF" strokeWidth={2.4} />
-                    ) : (
-                      <CheckCircle2 size={16} color="#FFFFFF" strokeWidth={2.4} />
-                    )}
+                    <Lock size={16} color="#FFFFFF" strokeWidth={2.4} />
                     <Text style={styles.primaryButtonText}>
-                      {formData.paymentMethod === 'card'
-                        ? `PROCEED TO PAYMENT • $${orderTotal.toFixed(2)} CAD`
-                        : `CONFIRM ORDER • $${orderTotal.toFixed(2)} CAD`}
+                      PROCEED TO PAYMENT • ${orderTotal.toFixed(2)} CAD
                     </Text>
                     <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
                   </View>
@@ -1370,12 +1331,12 @@ export default function CheckoutModal() {
               </TouchableOpacity>
 
               {/* Bottom security reassurance */}
-              <View style={styles.bottomTrustRow}>
+              {/* <View style={styles.bottomTrustRow}>
                 <ShieldCheck size={14} color="#059669" />
                 <Text style={styles.bottomTrustText}>
                   Bank-grade 256-bit TLS encrypted transaction via Moneris Solutions
                 </Text>
-              </View>
+              </View> */}
             </View>
           )}
 
@@ -2380,6 +2341,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  paymentSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    marginBottom: 12,
+  },
+  instantCheckoutBadge: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+  },
+  instantCheckoutBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.4,
+  },
   paymentMethodList: {
     gap: 10,
   },
@@ -2387,36 +2371,86 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
-    borderRadius: 14,
+    padding: 12,
+    borderRadius: 16,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   paymentOptionCardActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(236, 253, 245, 0.6)',
+    borderColor: '#0166dc',
     borderWidth: 1.5,
   },
   paymentOptionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     flex: 1,
-    marginRight: 10,
+    marginRight: 8,
+  },
+  creditCardIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 237, 213, 0.7)',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  debitCardIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(219, 234, 254, 0.7)',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   paymentOptionInfo: {
     flex: 1,
   },
+  paymentTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   paymentOptionName: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontWeight: '800',
     color: '#0F172A',
+  },
+  creditInstantBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 9999,
+  },
+  creditInstantBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  debitInstantBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 9999,
+  },
+  debitInstantBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   paymentOptionSub: {
     fontSize: 11,
     color: '#64748B',
     marginTop: 2,
+    lineHeight: 15,
   },
   paymentRadioOuter: {
     width: 20,
