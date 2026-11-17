@@ -29,6 +29,10 @@ export interface Product {
   barcode?: string;
   other_category?: string;
   equivalent_g?: string;
+  on_sale?: number | boolean;
+  discounted_price?: string | number | null;
+  discount_amount?: string | number | null;
+  discount_percent?: string | number | null;
 }
 
 export type SortOption =

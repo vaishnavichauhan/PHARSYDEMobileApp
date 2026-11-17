@@ -29,6 +29,7 @@ export const normalizeAppVersion = (v: string = CURRENT_APP_VERSION): string => 
 export const API_ENDPOINTS = {
   health: `${BASE_URL}/api/health`,
   products: `${BASE_URL}/api/products`,
+  deals: `${BASE_URL}/api/products/deals`,
   categories: `${BASE_URL}/api/products/meta/categories`,
   brands: `${BASE_URL}/api/products/meta/brands`,
   login: `${BASE_URL}/api/auth/login`,

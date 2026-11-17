@@ -8,11 +8,13 @@ import {
   LayoutGridCircles,
   Cigarette,
   Cannabis,
+  Sparkles,
 } from 'lucide-react-native';
 
 import HomeScreen from '../screens/HomeScreen';
 import CannabisScreen from '../screens/CannabisScreen';
 import NicotineScreen from '../screens/NicotineScreen';
+import DealsScreen from '../screens/DealsScreen';
 import OrderScreen from '../screens/OrderScreen';
 import MenuScreen from '../screens/MenuScreen';
 
@@ -114,6 +116,15 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen
+        name="Deals"
+        component={DealsScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon Icon={Sparkles} label="Deals" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Order"
         component={OrderScreen}
         options={{
@@ -163,10 +174,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 3,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     borderRadius: 12,
-    minWidth: 56,
-    maxWidth: 68,
+    minWidth: 46,
+    maxWidth: 58,
   },
   iconWrapperActive: {
     backgroundColor: 'rgba(59, 130, 246, 0.18)',

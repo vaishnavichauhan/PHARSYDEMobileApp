@@ -42,6 +42,7 @@ import {
 import {
   useCartStore,
   FREE_SHIPPING_THRESHOLD,
+  getEffectiveProductPrice,
 } from '../store/cartStore';
 import { useCheckoutStore } from '../store/checkoutStore';
 import { resolveImageUrl } from '../config/api';
@@ -215,7 +216,9 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
               {cartList.map(item => {
                 const product = item.product;
                 const id = product.pk || product.sku;
-                const pPrice = parseFloat(product.retail_price || '0');
+                const pPrice = getEffectiveProductPrice(product);
+                const retailPrice = parseFloat(product.retail_price || '0');
+                const isItemOnSale = pPrice < retailPrice;
                 const lineTotal = (pPrice * item.quantity).toFixed(2);
                 const weightDisplay = getProductWeightDisplay(product);
 
@@ -255,7 +258,16 @@ const CartModal = ({ onNavigateToCatalog }: CartModalProps) => {
                       </Text>
 
                       <View style={styles.itemBottomRow}>
-                        <Text style={styles.itemPrice}>${lineTotal} CAD</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                          {isItemOnSale && (
+                            <Text style={[styles.itemPrice, { textDecorationLine: 'line-through', color: '#94A3B8', fontSize: 12 }]}>
+                              ${(retailPrice * item.quantity).toFixed(2)}
+                            </Text>
+                          )}
+                          <Text style={[styles.itemPrice, isItemOnSale && { color: '#E11D48' }]}>
+                            ${lineTotal} CAD
+                          </Text>
+                        </View>
 
                         {/* Quantity Counter */}
                         <View style={styles.qtyBox}>

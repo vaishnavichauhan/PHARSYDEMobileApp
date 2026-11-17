@@ -990,6 +990,10 @@ const HomeScreen = () => {
     const priceNum = parseFloat(item.retail_price || '0');
     const itemKey = item.pk || item.sku || item.product_name;
     const isAdded = addedProductId === itemKey;
+    const rawQty =
+      item.qty_available !== undefined && item.qty_available !== null
+        ? parseFloat(String(item.qty_available))
+        : 99;
 
     return (
       <View key={key || itemKey} style={styles.productCard}>
@@ -1015,6 +1019,17 @@ const HomeScreen = () => {
             <View style={[styles.strainBadge, strainBadgeStyle]}>
               {/* <View style={[styles.strainDot, strainDotStyle]} /> */}
               <Text style={[styles.strainText, strainTextStyle]}>{strain}</Text>
+            </View>
+          ) : null}
+
+          {/* Top-Right: Stock badge if low stock */}
+          {rawQty <= 0 ? (
+            <View style={[styles.stockBadge, styles.stockBadgeSoldOut]}>
+              <Text style={styles.stockBadgeText}>SOLD OUT</Text>
+            </View>
+          ) : rawQty <= 5 ? (
+            <View style={styles.stockBadge}>
+              <Text style={styles.stockBadgeText}>{Math.round(rawQty)} LEFT</Text>
             </View>
           ) : null}
         </TouchableOpacity>
@@ -2167,6 +2182,25 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
     zIndex: 10,
+  },
+  stockBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    zIndex: 10,
+  },
+  stockBadgeSoldOut: {
+    backgroundColor: '#6B7280',
+  },
+  stockBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   strainDot: {
     width: 6,

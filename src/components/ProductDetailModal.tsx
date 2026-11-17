@@ -25,9 +25,6 @@ import {
   Flame,
   Droplets,
   ShieldCheck,
-  Package,
-  Barcode,
-  Scale,
   Sparkles,
 } from 'lucide-react-native';
 import { useProductDetailStore } from '../store/productDetailStore';
@@ -67,14 +64,43 @@ const ProductDetailModal = () => {
     selectedProduct.category.trim().toLowerCase() === 'none' ||
     selectedProduct.category.trim().toLowerCase() === 'null';
   const priceNum = parseFloat(selectedProduct.retail_price || '0');
-  const totalPriceForQty = (priceNum * quantity).toFixed(2);
 
-  const rawSalePrice =
-    selectedProduct.sale_price && selectedProduct.sale_price !== 'N.A.'
+  const rawDiscounted =
+    selectedProduct.discounted_price !== undefined &&
+    selectedProduct.discounted_price !== null &&
+    (selectedProduct.discounted_price as any) !== 'N.A.'
+      ? parseFloat(String(selectedProduct.discounted_price))
+      : selectedProduct.sale_price &&
+        selectedProduct.sale_price !== 'N.A.' &&
+        !isNaN(parseFloat(selectedProduct.sale_price))
       ? parseFloat(selectedProduct.sale_price)
       : null;
-  const hasValidSalePrice =
-    rawSalePrice !== null && !isNaN(rawSalePrice) && rawSalePrice > 0;
+
+  const isOnSale =
+    (selectedProduct.on_sale === 1 ||
+      (selectedProduct.on_sale as any) === true ||
+      Boolean(rawDiscounted && rawDiscounted < priceNum)) &&
+    rawDiscounted !== null &&
+    !isNaN(rawDiscounted) &&
+    rawDiscounted > 0 &&
+    rawDiscounted < priceNum;
+
+  const effectivePrice = isOnSale ? rawDiscounted : priceNum;
+  const totalPriceForQty = (effectivePrice * quantity).toFixed(2);
+  const discountAmount = isOnSale ? (priceNum - rawDiscounted).toFixed(2) : null;
+  const discountPercent =
+    isOnSale && priceNum > 0
+      ? selectedProduct.discount_percent
+        ? Math.round(Number(selectedProduct.discount_percent))
+        : Math.round(((priceNum - rawDiscounted) / priceNum) * 100)
+      : null;
+
+  // Stock remaining (e.g. 5 Left / Only 5 In Stock)
+  const rawQty =
+    selectedProduct.qty_available !== undefined && selectedProduct.qty_available !== null
+      ? parseFloat(String(selectedProduct.qty_available))
+      : null;
+  const isOutOfStock = rawQty !== null && rawQty <= 0;
 
   // Strain styling matching frontend
   let strainBadgeStyle = styles.hybridBadge;
@@ -163,6 +189,22 @@ const ProductDetailModal = () => {
                 </Text>
               </View>
             ) : null}
+
+            {/* Stock Status Pill Overlay (Top Right, matching web frontend) */}
+            <View style={styles.stockStatusPill}>
+              {isOutOfStock ? (
+                <Text style={styles.stockStatusTextSoldOut}>Out of Stock</Text>
+              ) : rawQty !== null ? (
+                <View style={styles.stockStatusRow}>
+                  <View style={styles.stockPulseDot} />
+                  <Text style={styles.stockStatusTextInStock}>
+                    {rawQty > 10 ? 'In Stock' : `Only ${Math.round(rawQty)} In Stock`}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.stockStatusTextDefault}>Available in Store</Text>
+              )}
+            </View>
           </View>
 
           {/* Multiple Image Gallery Thumbnails */}
@@ -192,19 +234,26 @@ const ProductDetailModal = () => {
 
             <View style={styles.priceRow}>
               <View style={styles.priceColumn}>
-                <Text style={styles.priceLabel}>Retail Price</Text>
+                <Text style={styles.priceLabel}>
+                  {isOnSale ? `SALE PRICE ${discountPercent ? `(-${discountPercent}%)` : ''}` : 'Retail Price'}
+                </Text>
                 <View style={styles.row}>
-           <Text style={styles.priceValue}>${priceNum.toFixed(2)}</Text>
-                <Text style={styles.priceLabel}> CAD</Text>
+                  {isOnSale && (
+                    <Text style={[styles.priceValue, { textDecorationLine: 'line-through', color: '#94A3B8', fontSize: 16, marginRight: 8 }]}>
+                      ${priceNum.toFixed(2)}
+                    </Text>
+                  )}
+                  <Text style={[styles.priceValue, isOnSale && { color: '#E11D48' }]}>
+                    ${effectivePrice.toFixed(2)}
+                  </Text>
+                  <Text style={styles.priceLabel}> CAD</Text>
                 </View>
-               
-
               </View>
 
-              {hasValidSalePrice && rawSalePrice !== null && (
-                <View style={styles.saleBadge}>
-                  <Text style={styles.saleBadgeText}>
-                    Sale: ${rawSalePrice.toFixed(2)}
+              {isOnSale && discountAmount && Number(discountAmount) > 0 && (
+                <View style={[styles.saleBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                  <Text style={[styles.saleBadgeText, { color: '#059669', fontWeight: '800' }]}>
+                    Save ${discountAmount}
                   </Text>
                 </View>
               )}
@@ -237,57 +286,6 @@ const ProductDetailModal = () => {
               </View>
             </View>
           </View>
-
-          {/* ── Specifications Grid ──────────────────────────────────── */}
-          <View style={styles.specsContainer}>
-            <Text style={styles.sectionHeader}>Product Specifications</Text>
-
-            <View style={styles.specsGrid}>
-              {selectedProduct.category ? (
-                <View style={styles.specItem}>
-                  <Package size={15} color="#64748B" />
-                  <View style={styles.specTextCol}>
-                    <Text style={styles.specLabel}>Category</Text>
-                    <Text style={styles.specValue}>{selectedProduct.category}</Text>
-                  </View>
-                </View>
-              ) : null}
-
-              {selectedProduct.sku ? (
-                <View style={styles.specItem}>
-                  <Barcode size={15} color="#64748B" />
-                  <View style={styles.specTextCol}>
-                    <Text style={styles.specLabel}>SKU</Text>
-                    <Text style={styles.specValue}>{selectedProduct.sku}</Text>
-                  </View>
-                </View>
-              ) : null}
-
-              {selectedProduct.size || selectedProduct.weight ? (
-                <View style={styles.specItem}>
-                  <Scale size={15} color="#64748B" />
-                  <View style={styles.specTextCol}>
-                    <Text style={styles.specLabel}>Package Net Weight</Text>
-                    <Text style={styles.specValue}>
-                      {selectedProduct.size || selectedProduct.weight}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          </View>
-
-          {/* ── Description / Notes ──────────────────────────────────── */}
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.sectionHeader}>About This Product</Text>
-            <Text style={styles.descriptionText}>
-              {selectedProduct.description ||
-                selectedProduct.notes ||
-                `Crafted for quality and precision, ${selectedProduct.product_name} provides consistent potency and flavor. Carefully curated under Pharsyde standards for licensed Manitoba retail fulfillment.`}
-            </Text>
-          </View>
-
-       
         </ScrollView>
 
         {/* ── Bottom Action Footer (Quantity + Add to Cart) ─────────── */}
@@ -480,6 +478,47 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#475569',
+  },
+  stockStatusPill: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 10,
+  },
+  stockStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  stockPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#059669',
+  },
+  stockStatusTextInStock: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#065F46',
+    textTransform: 'uppercase',
+  },
+  stockStatusTextSoldOut: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#B91C1C',
+    textTransform: 'uppercase',
+  },
+  stockStatusTextDefault: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
   },
   thumbnailRow: {
     flexDirection: 'row',

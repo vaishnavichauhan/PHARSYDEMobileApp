@@ -62,6 +62,25 @@ interface CartState {
   clearCart: () => void;
 }
 
+export const getEffectiveProductPrice = (product: Product): number => {
+  const retail = parseFloat(product.retail_price || '0') || 0;
+  const rawDiscount =
+    product.discounted_price !== undefined &&
+    product.discounted_price !== null &&
+    (product.discounted_price as any) !== 'N.A.'
+      ? parseFloat(String(product.discounted_price))
+      : (product.sale_price && (product.sale_price as any) !== 'N.A.' && !isNaN(parseFloat(product.sale_price))
+          ? parseFloat(product.sale_price)
+          : null);
+  const isOnSale =
+    (product.on_sale === 1 || (product.on_sale as any) === true || Boolean(rawDiscount && rawDiscount < retail)) &&
+    rawDiscount !== null &&
+    !isNaN(rawDiscount) &&
+    rawDiscount > 0 &&
+    rawDiscount < retail;
+  return isOnSale ? rawDiscount : retail;
+};
+
 const computeTotals = (
   items: Record<string, CartItem>,
   maxLimit: number = DEFAULT_MAX_CANNABIS_GRAMS,
@@ -71,7 +90,7 @@ const computeTotals = (
   const itemsList = Object.values(items);
   itemsList.forEach(item => {
     count += item.quantity;
-    const p = parseFloat(item.product.retail_price || '0');
+    const p = getEffectiveProductPrice(item.product);
     price += p * item.quantity;
   });
   const totalCannabisGrams = calculateCartCannabisGrams(itemsList);
