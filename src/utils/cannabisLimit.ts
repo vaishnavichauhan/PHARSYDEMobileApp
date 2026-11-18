@@ -7,11 +7,13 @@
 export const MAX_CANNABIS_GRAMS = 30.0;
 
 export const NICOTINE_CATEGORIES = new Set([
+  'disposable vapes',
   'nicotine closed pods',
   'nicotine e-juice',
   'nicotine vapes',
   'vapes & e-juices',
   'nicotine pouches/snus',
+  'nicotine pouches / snus',
   'vaping accessories',
 ]);
 
@@ -51,6 +53,7 @@ export function classifyProduct(item: any): 'nicotine' | 'cannabis' | 'accessory
   if (
     NICOTINE_CATEGORIES.has(category) ||
     category.includes('nicotine') ||
+    category.includes('disposable vapes') ||
     productName.includes('nicotine') ||
     productName.includes('closed pods') ||
     productName.includes('e-juice')

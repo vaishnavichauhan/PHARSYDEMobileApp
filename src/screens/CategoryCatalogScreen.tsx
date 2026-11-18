@@ -305,7 +305,7 @@ export default function CategoryCatalogScreen({
       if (search && search.trim()) {
         params.append('search', search.trim());
       }
-      params.append('hasImage', 'true');
+      params.append('hasImageOrInStock', 'true');
       params.append('limit', search && search.trim() ? '100' : '150');
 
       const url = `${API_ENDPOINTS.products}?${params.toString()}`;
@@ -358,10 +358,10 @@ export default function CategoryCatalogScreen({
     };
   }, []);
 
-  // ── Fetch Available Categories from backend API meta endpoint (hasImage=true) ─
+  // ── Fetch Available Categories from backend API meta endpoint (hasImageOrInStock=true) ─
   useEffect(() => {
     let isMounted = true;
-    fetch(`${API_ENDPOINTS.categories}?hasImage=true`)
+    fetch(`${API_ENDPOINTS.categories}?hasImageOrInStock=true`)
       .then(res => res.json())
       .then(data => {
         if (isMounted && Array.isArray(data?.categories)) {
@@ -560,7 +560,7 @@ export default function CategoryCatalogScreen({
       rawStrain.trim().toLowerCase() === 'null' ||
       rawStrain.trim().toLowerCase() === 'n/a';
     const strain = isNoneStrain ? null : rawStrain.trim();
-    const isNicotineCatalog = title?.toLowerCase() === 'nicotine';
+    const isNicotineCatalog = title?.toLowerCase().includes('nicotine');
     const showStrainBadge = !isNicotineCatalog && Boolean(strain);
 
     // 1) Indica: Blue, Hybrid: Black, Sativa: Red

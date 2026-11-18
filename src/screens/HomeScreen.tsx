@@ -57,10 +57,10 @@ const CARD_GAP = 10;
 const CARD_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
 
 const ALL_CANNABIS_QUERY =
-  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,Accessories,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
+  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,Accessories,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
 
 const ALL_NICOTINE_QUERY =
-  'Nicotine Closed Pods,Nicotine E-Juice,NICOTINE POUCHES / SNUS,Nicotine Vapes,vapes & e-juices,vaping accessories';
+  'Disposable Vapes,Nicotine Closed Pods,Nicotine E-Juice,NICOTINE POUCHES / SNUS,Nicotine Vapes,vapes & e-juices,vaping accessories';
 
 const HERO_IMAGES = [
   { id: '1', source: require('../assets/Images/hero1.png') },
@@ -215,6 +215,33 @@ const HomeScreen = () => {
   const [nicotineProducts, setNicotineProducts] = useState<Product[]>([]);
   const [isLoadingCategoryShowcase, setIsLoadingCategoryShowcase] = useState(false);
 
+  // ── Deals Section State ─────────────────────────────────────
+  const [dealsProducts, setDealsProducts] = useState<Product[]>([]);
+  const [dealsTotalCount, setDealsTotalCount] = useState<number>(0);
+  const [isLoadingDeals, setIsLoadingDeals] = useState<boolean>(false);
+
+  const fetchDeals = useCallback(async () => {
+    try {
+      setIsLoadingDeals(true);
+      const url = `${API_ENDPOINTS.products}?onSale=true&inStock=true&hasImageOrInStock=true&sortBy=modified&sortOrder=DESC&limit=8`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const list: Product[] = Array.isArray(json?.products)
+        ? json.products
+        : Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json)
+        ? json
+        : [];
+      setDealsProducts(list);
+      setDealsTotalCount(json?.total || list.length);
+    } catch (err) {
+      console.warn('Failed to fetch deals for HomeScreen:', err);
+    } finally {
+      setIsLoadingDeals(false);
+    }
+  }, []);
+
   // ── Dynamic Custom Home Sections State ──────────────────────
   const [homeSections, setHomeSections] = useState<DynamicHomeSection[]>([]);
   const [isLoadingHomeSections, setIsLoadingHomeSections] = useState(false);
@@ -256,8 +283,8 @@ const HomeScreen = () => {
     try {
       setIsLoadingCategoryShowcase(true);
       const [resCannabis, resNicotine] = await Promise.all([
-        fetch(`${API_ENDPOINTS.products}?category=${encodeURIComponent(ALL_CANNABIS_QUERY)}&limit=8&hasImage=true`),
-        fetch(`${API_ENDPOINTS.products}?category=${encodeURIComponent(ALL_NICOTINE_QUERY)}&limit=8&hasImage=true`),
+        fetch(`${API_ENDPOINTS.products}?category=${encodeURIComponent(ALL_CANNABIS_QUERY)}&limit=8&hasImageOrInStock=true`),
+        fetch(`${API_ENDPOINTS.products}?category=${encodeURIComponent(ALL_NICOTINE_QUERY)}&limit=8&hasImageOrInStock=true`),
       ]);
       const jsonCannabis = await resCannabis.json();
       const jsonNicotine = await resNicotine.json();
@@ -306,14 +333,15 @@ const HomeScreen = () => {
     return ['All', ...Array.from(set)];
   }, [storeCategories, products]);
 
-  // Load distinct categories, new arrivals, best sellers, category showcase & dynamic sections on mount
+  // Load distinct categories, new arrivals, best sellers, category showcase, dynamic sections & deals on mount
   useEffect(() => {
     fetchCategories();
     fetchNewArrivals();
     fetchBestSellers();
     fetchCategoryShowcase();
     fetchHomeSections();
-  }, [fetchCategories, fetchNewArrivals, fetchBestSellers, fetchCategoryShowcase, fetchHomeSections]);
+    fetchDeals();
+  }, [fetchCategories, fetchNewArrivals, fetchBestSellers, fetchCategoryShowcase, fetchHomeSections, fetchDeals]);
 
   const handleRefresh = useCallback(() => {
     refreshProducts();
@@ -321,7 +349,8 @@ const HomeScreen = () => {
     fetchBestSellers();
     fetchCategoryShowcase();
     fetchHomeSections();
-  }, [refreshProducts, fetchNewArrivals, fetchBestSellers, fetchCategoryShowcase, fetchHomeSections]);
+    fetchDeals();
+  }, [refreshProducts, fetchNewArrivals, fetchBestSellers, fetchCategoryShowcase, fetchHomeSections, fetchDeals]);
 
   // ── Reset Filters when navigating away to another screen or returning to Home ──
   useFocusEffect(
@@ -592,6 +621,93 @@ const HomeScreen = () => {
         {/* ── 1. Hero Carousel using react-native-swiper-flatlist ── */}
         <HeroSwiper />
 
+        {/* ── 2. Promotional Deals Section (Above Best Sellers) ── */}
+        <View style={[styles.homeCuratedSection, styles.homeCuratedSectionDeals]}>
+          <View style={styles.homeCuratedHeader}>
+            <View style={styles.homeCuratedTitleCol}>
+              <View style={styles.curatedTitleRow}>
+                <View style={styles.titleIconBoxDeals}>
+                  <Crown size={16} color="#E11D48" strokeWidth={2.4} />
+                </View>
+                <Text style={styles.homeCuratedTitle}>
+                  Deals 
+                </Text>
+              </View>
+              <Text style={styles.homeCuratedSub}>
+                {dealsTotalCount > 0
+                  ? `${dealsTotalCount} Deals on Sale Available`
+                  : 'Limited-time deals & member savings'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.seeMoreHeaderBtn}
+              onPress={() => navigation.navigate('Deals')}
+              activeOpacity={0.75}>
+              <Text style={[styles.seeMoreHeaderText, { color: '#E11D48' }]}>See More</Text>
+              <ChevronRight size={15} color="#E11D48" strokeWidth={2.4} />
+            </TouchableOpacity>
+          </View>
+
+          {isLoadingDeals && dealsProducts.length === 0 ? (
+            <View style={styles.homeCuratedGrid}>
+              <ProductCardSkeleton pulseAnim={pulseAnim} />
+              <ProductCardSkeleton pulseAnim={pulseAnim} />
+            </View>
+          ) : (
+            <View style={styles.homeCuratedGrid}>
+              {dealsProducts.slice(0, 4).map(item =>
+                renderProductCard(item, `deal-${item.pk || item.sku || item.product_name}`)
+              )}
+            </View>
+          )}
+        </View>
+
+      {/* ── 3. Best Sellers Section (Max 4 Cards + See More) ── */}
+      <View style={[styles.homeCuratedSection, styles.homeCuratedSectionBest]}>
+        <View style={styles.homeCuratedHeader}>
+          <View style={styles.homeCuratedTitleCol}>
+            <View style={styles.curatedTitleRow}>
+              <View style={styles.titleIconBoxBest}>
+                <Crown size={16} color="#D97706" strokeWidth={2.4} />
+              </View>
+              <Text style={styles.homeCuratedTitle}>
+                Best <Text style={styles.titleAccentAmber}>Sellers</Text>
+              </Text>
+            </View>
+            <Text style={styles.homeCuratedSub}>
+              {bestSellers.length > 0
+                ? `${bestSellers.length} community favorites`
+                : 'Top requested craft picks'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.seeMoreHeaderBtn}
+            onPress={() => openCuratedModal('best-sellers')}
+            activeOpacity={0.75}>
+            <Text style={[styles.seeMoreHeaderText, { color: '#B45309' }]}>See More</Text>
+            <ChevronRight size={15} color="#B45309" strokeWidth={2.4} />
+          </TouchableOpacity>
+        </View>
+
+        {isLoadingBestSellers && bestSellers.length === 0 ? (
+          <View style={styles.homeCuratedGrid}>
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
+            <ProductCardSkeleton pulseAnim={pulseAnim} />
+          </View>
+        ) : (
+          <View style={styles.homeCuratedGrid}>
+            {bestSellers.slice(0, 4).map(item =>
+              renderProductCard(item, `best-${item.pk || item.sku || item.product_name}`)
+            )}
+          </View>
+        )}
+
+     
+      </View>
+
+
       {/* ── 2. New Arrivals Section (Max 4 Cards + See More) ── */}
       <View style={styles.homeCuratedSection}>
         <View style={styles.homeCuratedHeader}>
@@ -641,50 +757,6 @@ const HomeScreen = () => {
           <Text style={styles.seeMoreBottomBtnText}>See More New Arrivals</Text>
           <ArrowRight size={15} color="#0F172A" strokeWidth={2.4} />
         </TouchableOpacity> */}
-      </View>
-
-      {/* ── 3. Best Sellers Section (Max 4 Cards + See More) ── */}
-      <View style={[styles.homeCuratedSection, styles.homeCuratedSectionBest]}>
-        <View style={styles.homeCuratedHeader}>
-          <View style={styles.homeCuratedTitleCol}>
-            <View style={styles.curatedTitleRow}>
-              <View style={styles.titleIconBoxBest}>
-                <Crown size={16} color="#D97706" strokeWidth={2.4} />
-              </View>
-              <Text style={styles.homeCuratedTitle}>
-                Best <Text style={styles.titleAccentAmber}>Sellers</Text>
-              </Text>
-            </View>
-            <Text style={styles.homeCuratedSub}>
-              {bestSellers.length > 0
-                ? `${bestSellers.length} community favorites`
-                : 'Top requested craft picks'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.seeMoreHeaderBtn}
-            onPress={() => openCuratedModal('best-sellers')}
-            activeOpacity={0.75}>
-            <Text style={[styles.seeMoreHeaderText, { color: '#B45309' }]}>See More</Text>
-            <ChevronRight size={15} color="#B45309" strokeWidth={2.4} />
-          </TouchableOpacity>
-        </View>
-
-        {isLoadingBestSellers && bestSellers.length === 0 ? (
-          <View style={styles.homeCuratedGrid}>
-            <ProductCardSkeleton pulseAnim={pulseAnim} />
-            <ProductCardSkeleton pulseAnim={pulseAnim} />
-          </View>
-        ) : (
-          <View style={styles.homeCuratedGrid}>
-            {bestSellers.slice(0, 4).map(item =>
-              renderProductCard(item, `best-${item.pk || item.sku || item.product_name}`)
-            )}
-          </View>
-        )}
-
-     
       </View>
 
       {/* ── 3.5. Dynamic Custom Sections (Configured via Home Page Section Master) ── */}
@@ -967,7 +1039,8 @@ const HomeScreen = () => {
       item.category &&
       (item.category.toLowerCase().includes('nicotine') ||
         item.category.toLowerCase().includes('vaping accessories') ||
-        item.category.toLowerCase().includes('vapes & e-juices'));
+        item.category.toLowerCase().includes('vapes & e-juices') ||
+        item.category.toLowerCase().includes('disposable vapes'));
     const showStrainBadge = !isNicotine && Boolean(strain);
 
     // 1) Indica: Blue, Hybrid: Black, Sativa: Red
@@ -988,6 +1061,27 @@ const HomeScreen = () => {
     }
 
     const priceNum = parseFloat(item.retail_price || '0');
+    const retailPrice = parseFloat(item.retail_price || '0');
+    const rawDiscount =
+      item.discounted_price !== undefined && item.discounted_price !== null
+        ? parseFloat(String(item.discounted_price))
+        : null;
+    const isOnSale =
+      rawDiscount !== null && !isNaN(rawDiscount) && rawDiscount > 0 && rawDiscount < retailPrice;
+    const effectivePrice = isOnSale ? rawDiscount : retailPrice;
+
+    const discountAmount = isOnSale
+      ? item.discount_amount
+        ? parseFloat(String(item.discount_amount)).toFixed(2)
+        : (retailPrice - rawDiscount).toFixed(2)
+      : null;
+
+    const discountPercent = isOnSale && retailPrice > 0
+      ? item.discount_percent
+        ? Math.round(Number(item.discount_percent))
+        : Math.round(((retailPrice - rawDiscount) / retailPrice) * 100)
+      : null;
+
     const itemKey = item.pk || item.sku || item.product_name;
     const isAdded = addedProductId === itemKey;
     const rawQty =
@@ -1021,6 +1115,16 @@ const HomeScreen = () => {
               <Text style={[styles.strainText, strainTextStyle]}>{strain}</Text>
             </View>
           ) : null}
+
+          {/* Sale badge if on sale */}
+          {isOnSale && (
+            <View style={[styles.saleBadge, { top: showStrainBadge ? 32 : 8 }]}>
+              <Sparkles size={9} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={styles.saleBadgeText}>
+                SALE {discountPercent ? `-${discountPercent}%` : ''}
+              </Text>
+            </View>
+          )}
 
           {/* Top-Right: Stock badge if low stock */}
           {rawQty <= 0 ? (
@@ -1080,10 +1184,36 @@ const HomeScreen = () => {
           {/* Price & Add Button */}
           <View style={styles.priceRow}>
             <View style={styles.priceWrap}>
-              <Text style={styles.priceText}>
-                ${priceNum.toFixed(2)}
-              </Text>
-              <Text style={styles.priceCurrency}>CAD</Text>
+              {isOnSale ? (
+                <View style={styles.dealPriceCol}>
+                  <Text style={styles.salePriceLabel}>
+                    SALE PRICE {discountPercent ? `(-${discountPercent}%)` : ''}
+                  </Text>
+                  <View style={styles.effectivePriceRow}>
+                    <Text
+                      style={[
+                        styles.originalPriceText,
+                        { textDecorationLine: 'line-through', color: '#94A3B8' },
+                      ]}>
+                      ${retailPrice.toFixed(2)}
+                    </Text>
+                    <Text style={styles.salePriceText}>${effectivePrice.toFixed(2)}</Text>
+                    <Text style={styles.priceCurrency}>CAD</Text>
+                  </View>
+                  {discountAmount && Number(discountAmount) > 0 && (
+                    <View style={styles.savingsPill}>
+                      <Text style={styles.savingsPillText}>Save ${discountAmount}</Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.regularPriceRow}>
+                  <Text style={styles.priceText}>
+                    ${retailPrice.toFixed(2)}
+                  </Text>
+                  <Text style={styles.priceCurrency}>CAD</Text>
+                </View>
+              )}
             </View>
 
             <TouchableOpacity
@@ -2339,14 +2469,83 @@ const styles = StyleSheet.create({
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     marginTop: 2,
   },
   priceWrap: {
+    flex: 1,
+  },
+  dealPriceCol: {
+    flex: 1,
+  },
+  regularPriceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 3,
+  },
+  saleBadge: {
+    position: 'absolute',
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#E11D48',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: '#FB7185',
+  },
+  saleBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  salePriceLabel: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#E11D48',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  originalPriceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
+    textDecorationColor: '#94A3B8',
+    marginRight: 4,
+  },
+  effectivePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  salePriceText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#E11D48',
+    marginRight: 2,
+  },
+  savingsPill: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  savingsPillText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#059669',
   },
   priceText: {
     fontSize: 15,
@@ -2545,6 +2744,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 6,
   },
+  homeCuratedSectionDeals: {
+    marginTop: 12,
+  },
   homeCuratedSectionBest: {
     marginTop: 12,
   },
@@ -2588,6 +2790,19 @@ const styles = StyleSheet.create({
   },
   titleAccentAmber: {
     color: '#D97706',
+  },
+  titleIconBoxDeals: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFE4E6',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleAccentRose: {
+    color: '#E11D48',
   },
   homeCuratedBadgeRow: {
     flexDirection: 'row',

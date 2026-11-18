@@ -109,7 +109,7 @@ const BottomTabNavigator = () => {
             <TabIcon
             Icon={Cigarette}
               // imageSource={require('../assets/Images/cannabis.png')}
-              label="Nicotine"
+              label="Nicotine Vapes"
               focused={focused}
             />
           ),

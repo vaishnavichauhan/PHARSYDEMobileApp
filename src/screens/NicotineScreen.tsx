@@ -10,6 +10,12 @@ import CategoryCatalogScreen, { CatalogCategoryItem } from './CategoryCatalogScr
 
 export const NICOTINE_CATEGORIES: CatalogCategoryItem[] = [
   {
+    id: 'disposable-vapes',
+    name: 'Disposable Vapes',
+    backendName: 'Disposable Vapes',
+    icon: Zap,
+  },
+  {
     id: 'nicotine-closed-pods',
     name: 'Nicotine Closed Pods',
     backendName: 'Nicotine Closed Pods',
@@ -48,12 +54,12 @@ export const NICOTINE_CATEGORIES: CatalogCategoryItem[] = [
 ];
 
 const ALL_NICOTINE_QUERY =
-  'Nicotine Closed Pods,Nicotine E-Juice,NICOTINE POUCHES / SNUS,Nicotine Vapes,vapes & e-juices,vaping accessories';
+  'Disposable Vapes,Nicotine Closed Pods,Nicotine E-Juice,NICOTINE POUCHES / SNUS,Nicotine Vapes,vapes & e-juices,vaping accessories';
 
 export default function NicotineScreen() {
   return (
     <CategoryCatalogScreen
-      title="Nicotine"
+      title="Nicotine Vapes"
       subtitle="Closed pods, e-juices, pouches & accessories"
       badgeText="Vapes & Nicotine Catalog"
       heroImage={require('../assets/Images/cannabis.png')}

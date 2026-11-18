@@ -24,12 +24,6 @@ export const CANNABIS_CATEGORIES: CatalogCategoryItem[] = [
     icon: Zap,
   },
   {
-    id: 'disposable-vapes',
-    name: 'Disposable Vapes',
-    backendName: 'Disposable Vapes',
-    icon: Zap,
-  },
-  {
     id: 'dried-flower',
     name: 'Dried Flower',
     backendName: 'Dried Flower',
@@ -116,7 +110,7 @@ export const CANNABIS_CATEGORIES: CatalogCategoryItem[] = [
 ];
 
 const ALL_CANNABIS_QUERY =
-  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Disposable Vapes,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,Accessories,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
+  'CANNABIS PLANT SEEDS,CARTRIDGE 510,Dried Flower,Edibles-Beverages Dried,Edibles-Beverages Liquid,Edibles-Candy/Chocolate/Confec,Extracts Ingested,Extracts Inhaled,FORTIFIED PRE-ROLLED,KIEF,MILLED/BLENDED,NONE,Accessories,PRE-ROLLED,THC POUCHES,Topical Products,Vape';
 
 export default function CannabisScreen() {
   return (
